@@ -4,10 +4,30 @@
 
 ```mermaid
 graph TD
-    A[React Frontend<br/>(localhost:3000)]-->|"HTTP/REST"|B[Go Backend API<br/>(localhost:8080)]
-    B-->|"SQL"|C[MySQL Database]
-    B-->|"SMTP"|D[MailHog SMTP/Web UI]
-    D-->|"Web UI"|E[MailHog Web<br/>(localhost:8025)]
+    subgraph "User Interface"
+        A[<img src="https://www.vectorlogo.zone/logos/reactjs/reactjs-icon.svg" width="40" height="40" /><br/><strong>React Frontend</strong><br/>(localhost:3000)]
+    end
+
+    subgraph "Backend Services"
+        B[<img src="https://www.vectorlogo.zone/logos/golang/golang-icon.svg" width="40" height="40" /><br/><strong>Go Backend API</strong><br/>(localhost:8080)]
+    end
+
+    subgraph "Data Storage"
+        C[<img src="https://www.vectorlogo.zone/logos/mysql/mysql-icon.svg" width="40" height="40" /><br/><strong>MySQL Database</strong>]
+    end
+
+    subgraph "Email Service"
+        D[<img src="https://raw.githubusercontent.com/mailhog/MailHog/master/docs/MailHog-Logo.png" width="40" height="40" /><br/><strong>MailHog SMTP/Web UI</strong><br/>(localhost:8025)]
+    end
+
+    A -- "HTTP/REST" --> B
+    B -- "SQL" --> C
+    B -- "SMTP" --> D
+
+    style A fill:#282c34,stroke:#61DAFB,stroke-width:2px,color:#fff
+    style B fill:#00ADD8,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#4479A1,stroke:#fff,stroke-width:2px,color:#fff
+    style D fill:#c7c7c7,stroke:#000,stroke-width:2px,color:#000
 ```
 
 # Communication_LTD (Secure Version)

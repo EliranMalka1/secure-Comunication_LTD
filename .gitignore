@@ -8,6 +8,7 @@ backend/bin/
 backend/main
 backend/*.exe
 backend/bin
+backend/__debug_bin*
 
 # General
 *.log

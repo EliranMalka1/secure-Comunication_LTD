@@ -1,3 +1,15 @@
+# Secure Communication LTD
+
+## System Architecture Diagram
+
+```mermaid
+graph TD
+    A[React Frontend (localhost:3000)] -- HTTP/REST --> B(Go Backend API (localhost:8080))
+    B -- SQL --> C[(MySQL Database)]
+    B -- SMTP --> D[MailHog (SMTP/Web UI)]
+    D -- Web UI --> E[MailHog Web (localhost:8025)]
+```
+
 # Communication_LTD (Secure Version)
 
 ## Project Overview
@@ -46,7 +58,7 @@ This project incorporates several security measures to protect user data and pre
 
 Before you begin, ensure you have the following tools installed on your system:
 
--   **Go**: Version 1.21 or higher
+-   **Go**: Version 1.24 or higher
 -   **Node.js**: Version 18 or higher (with `npm` or `yarn`)
 -   **Docker**: Version 20.10 or higher
 -   **Docker Compose**: Version 2.x

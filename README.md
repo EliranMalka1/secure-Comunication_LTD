@@ -4,10 +4,10 @@
 
 ```mermaid
 graph TD
-    A[React Frontend (localhost:3000)] -- HTTP/REST --> B(Go Backend API (localhost:8080))
-    B -- SQL --> C[(MySQL Database)]
-    B -- SMTP --> D[MailHog (SMTP/Web UI)]
-    D -- Web UI --> E[MailHog Web (localhost:8025)]
+    A[React Frontend (localhost:3000)]-->|"HTTP/REST"|B(Go Backend API (localhost:8080))
+    B-->|"SQL"|C[(MySQL Database)]
+    B-->|"SMTP"|D[MailHog (SMTP/Web UI)]
+    D-->|"Web UI"|E[MailHog Web (localhost:8025)]
 ```
 
 # Communication_LTD (Secure Version)
@@ -209,4 +209,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Authors
 
--   [Your Name](https://github.com/your-username)
+-   Eliran Malka(https://github.com/EliranMalka1)

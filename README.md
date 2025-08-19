@@ -2,7 +2,6 @@
 
 ## System Architecture Diagram
 
-```markdown
 ```mermaid
 flowchart TD
     A["React Frontend\n(localhost:3000)"] -->|HTTP/REST| B["Go Backend API\n(localhost:8080)"]

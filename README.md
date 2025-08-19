@@ -2,11 +2,12 @@
 
 ## System Architecture Diagram
 
+```markdown
 ```mermaid
-graph TD
-    A[React Frontend<br/>(localhost:3000)]-->|HTTP/REST|B[Go Backend API<br/>(localhost:8080)]
-    B-->|SQL|C[MySQL Database]
-    B-->|SMTP|D[MailHog SMTP/Web UI<br/>(localhost:8025)]
+flowchart TD
+    A["React Frontend\n(localhost:3000)"] -->|HTTP/REST| B["Go Backend API\n(localhost:8080)"]
+    B -->|SQL| C["MySQL Database"]
+    B -->|SMTP| D["MailHog SMTP/Web UI\n(localhost:8025)"]
 
     style A fill:#282c34,stroke:#61DAFB,stroke-width:2px,color:#fff
     style B fill:#00ADD8,stroke:#fff,stroke-width:2px,color:#fff

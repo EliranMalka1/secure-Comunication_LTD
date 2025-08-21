@@ -72,28 +72,39 @@ Before you begin, ensure you have the following tools installed on your system:
 ---
 
 
+
 ## Folder Structure
 
 The actual directory layout for this project is:
 
 ```
 secure-Comunication_LTD/
-├── backend/           # Go backend application
-│   ├── main.go
+├── backend/                  # Go backend application
+│   ├── cmd/
+│   │   └── main.go           # Application entry point
+│   ├── config/
+│   │   └── password-policy.toml
+│   ├── db/
+│   │   └── init.sql
+│   ├── internal/
+│   │   ├── handlers/
+│   │   ├── repository/
+│   │   └── services/
+│   ├── Dockerfile
 │   ├── go.mod
-│   └── Dockerfile
-├── frontend/          # React frontend application
+│   ├── go.sum
+│   └── README.md
+├── config/                   # (Optional) Global configuration files
+├── frontend/                 # React frontend application
 │   ├── public/
 │   │   └── index.html
 │   ├── src/
 │   │   └── App.js
 │   ├── package.json
 │   └── Dockerfile
-├── db/
-│   └── init.sql       # SQL initialization file
-├── docker-compose.yml # Docker Compose configuration
-├── .gitignore         # Git ignore file
-└── README.md          # Project documentation
+├── docker-compose.yml        # Docker Compose configuration
+├── LICENSE                   # Project license
+├── README.md                 # Project documentation
 ```
 
 ---
@@ -102,14 +113,14 @@ secure-Comunication_LTD/
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/your-username/communication_ltd.git
-    cd communication_ltd
+    git clone https://github.com/EliranMalka1/secure-Comunication_LTD.git
+    cd secure-Comunication_LTD
     ```
 
 2.  **Configure Environment Variables**
     Copy the example environment file and customize it with your local settings.
     ```bash
-    cp .env.example .env
+    cp backend/config/.env.example backend/.env
     ```
     *Fill in the required values in the `.env` file as described in the Environment Variables section.*
 
@@ -118,25 +129,18 @@ secure-Comunication_LTD/
     ```bash
     docker compose up -d --build
     ```
-
-4.  **Run Database Migrations & Seed**
-    Execute the migration files to set up the database schema and optionally seed it with initial data.
-    ```bash
-    # Example command (adjust if using a different migration tool)
-    docker compose exec backend ./migrate -path /migrations -database "mysql://user:password@tcp(db:3306)/dbname" up
-    ```
-
 ---
 
 ## Access Points
 
 Once the services are running, you can access them at the following locations:
 
-| Service | URL | Port |
+| Service | URL / Host | Port |
 | :--- | :--- | :--- |
 | **React Frontend** | `http://localhost:3000` | `3000` |
 | **Go Backend API** | `http://localhost:8080` | `8080` |
 | **MailHog Web UI** | `http://localhost:8025` | `8025` |
+| **MySQL Database** | `localhost` (from host) / `db` (from Docker network) | `3306` |
 
 ---
 
@@ -146,32 +150,21 @@ The `.env` file is crucial for configuring the application.
 
 | Variable | Description | Example |
 | :--- | :--- | :--- |
-| `DB_HOST` | Database host name. | `db` |
+| `PORT` | Port for the Go backend API. | `8080` |
+| `DB_HOST` | Database host name (service name in Docker Compose is usually `db` or `mysql`). | `MySQL` |
 | `DB_PORT` | Database port. | `3306` |
-| `DB_USER` | Database username. | `user` |
-| `DB_PASSWORD` | Database password. | `secret` |
-| `DB_NAME` | Database name. | `communication_ltd` |
-| `JWT_SECRET` | Secret key for signing JWTs. | `a-very-strong-secret-key` |
-| `SMTP_HOST` | MailHog SMTP server host. | `mailhog` |
-| `SMTP_PORT` | MailHog SMTP server port. | `1025` |
-| `API_PORT` | Port for the Go backend API. | `8080` |
-| `APP_PORT` | Port for the React frontend. | `3000` |
+| `DB_USER` | Database username. | `app` |
+| `DB_PASS` | Database password. | `secret` |
+| `DB_NAME` | Database name. | `secure_comm` |
+| `HMAC_SECRET` | Secret key for HMAC (used for password hashing). | `change_me_hmac` |
+| `JWT_SECRET` | Secret key for signing JWTs. | `change_me_jwt` |
+| `SMTP_HOST` | SMTP server host (MailHog for dev, e.g. `mailhog` or `localhost`). | `localhost` |
+| `SMTP_PORT` | SMTP server port. | `1025` |
+| `SMTP_FROM` | Default sender email address. | `no-reply@communication_ltd.local` |
 
 ---
 
-## Running Migrations & Seed Data
 
-To run database migrations manually:
-```bash
-docker compose exec backend ./migrate -path /migrations -database "mysql://user:password@tcp(db:3306)/dbname" up
-```
-
-To seed the database with initial data:
-```bash
-docker compose exec db mysql -u<user> -p<password> <database_name> < /db/seed/seed.sql
-```
-
----
 
 ## How to Run Tests
 
@@ -213,4 +206,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Authors
 
+-   Eliran Malka(https://github.com/EliranMalka1)
+-   Eliran Malka(https://github.com/EliranMalka1)
+-   Eliran Malka(https://github.com/EliranMalka1)
 -   Eliran Malka(https://github.com/EliranMalka1)

@@ -162,9 +162,9 @@ go run cmd/main.go
 
 ```mermaid
 flowchart TD
-    A[React Frontend] -->|HTTP/REST| B[Go Backend (Echo)]
-    B -->|SQL Queries| C[(MySQL Database)]
-    B -->|SMTP| D[MailHog (Dev)]
+    A[React Frontend] -->|HTTP| B["Go Backend (Echo)"];
+    B -->|SQL queries| C[(MySQL Database)];
+    B -->|SMTP| D["MailHog (Dev)"];
 ```
 
 ---

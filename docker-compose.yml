@@ -9,15 +9,15 @@ services:
       MYSQL_PASSWORD: secret
     volumes:
       - db_data:/var/lib/mysql
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./backend/db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pexample"]
       interval: 5s
       timeout: 3s
       retries: 20
     # Expose 3306 outside only if really needed:
-    # ports:
-    #   - "3306:3306"
+    ports:
+      - "3306:3306"
 
   backend:
     build: ./backend

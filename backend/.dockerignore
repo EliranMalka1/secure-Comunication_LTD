@@ -1,0 +1,6 @@
+.git
+**/*.log
+**/node_modules
+**/dist
+**/build
+__debug_bin*

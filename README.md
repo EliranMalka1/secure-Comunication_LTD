@@ -73,6 +73,7 @@ Before you begin, ensure you have the following tools installed on your system:
 
 
 
+
 ## Folder Structure
 
 The actual directory layout for this project is:
@@ -81,8 +82,9 @@ The actual directory layout for this project is:
 secure-Comunication_LTD/
 ├── backend/                  # Go backend application
 │   ├── cmd/
-│   │   └── main.go           # Application entry point
+│   │   └── main.go
 │   ├── config/
+│   │   ├── .env.example
 │   │   └── password-policy.toml
 │   ├── db/
 │   │   └── init.sql
@@ -91,17 +93,32 @@ secure-Comunication_LTD/
 │   │   ├── repository/
 │   │   └── services/
 │   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── .env # Need to ber added
 │   ├── go.mod
 │   ├── go.sum
 │   └── README.md
-├── config/                   # (Optional) Global configuration files
+├── config/                   # Global configuration files (currently empty)
 ├── frontend/                 # React frontend application
 │   ├── public/
-│   │   └── index.html
+│   │   └── vite.svg
 │   ├── src/
-│   │   └── App.js
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── assets/
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── .dockerignore
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── node_modules/
+│   ├── package-lock.json
 │   ├── package.json
-│   └── Dockerfile
+│   └── vite.config.js
 ├── docker-compose.yml        # Docker Compose configuration
 ├── LICENSE                   # Project license
 ├── README.md                 # Project documentation

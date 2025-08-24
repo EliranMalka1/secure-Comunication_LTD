@@ -1,0 +1,131 @@
+/* Reset & base */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #e8e8f0;
+
+  /* 🔹 Full-screen background: gradient + soft halo */
+  background:
+    radial-gradient(1100px circle at 20% 30%, #1b2b4b 0%, rgba(27,43,75,0.15) 35%, rgba(15,18,33,0) 55%),
+    linear-gradient(135deg, #0f1221 0%, #0b1120 50%, #0a0e1a 100%);
+}
+
+/* Layout */
+.hero {
+  position: relative;
+  min-height: 100vh;         /* 🔹 Full-screen height */
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Card */
+.glass {
+  width: min(92vw, 820px);
+  padding: clamp(24px, 4vw, 48px);
+  border-radius: 24px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 2;
+}
+
+/* Branding */
+.brand {
+  margin: 0 0 10px;
+  font-size: clamp(28px, 5vw, 56px);
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #7aa2ff, #6df0ff 60%, #b5ffea);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  margin: 0 auto 28px;
+  opacity: 0.85;
+  font-size: clamp(14px, 2.2vw, 18px);
+  max-width: 540px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.btn {
+  cursor: pointer;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: transform .06s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn.primary {
+  background: linear-gradient(135deg, #6c8bff, #55e7ff);
+  color: #0b1120;
+  box-shadow: 0 8px 20px rgba(110,160,255,0.35);
+}
+.btn.primary:hover { box-shadow: 0 10px 24px rgba(110,160,255,0.5); }
+
+.btn.ghost {
+  background: transparent;
+  color: #dfe6ff;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+.btn.ghost:hover { background: rgba(255,255,255,0.06); }
+
+/* Secure label */
+.footer-note {
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.75;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #3ce37a;
+  box-shadow: 0 0 10px #3ce37a66;
+}
+
+/* Background blobs (expanded to fill screen nicely) */
+.background-blur {
+  position: absolute;
+  filter: blur(90px);
+  opacity: 0.45;
+  border-radius: 50%;
+  z-index: 1;
+}
+.blur-1 { width: 48vw; height: 48vw; background: #6c8bff; top: -10vw; left: -10vw; }
+.blur-2 { width: 54vw; height: 54vw; background: #55e7ff; bottom: -14vw; right: -14vw; }
+.blur-3 { width: 30vw; height: 30vw; background: #b5ffea; top: 18vh; right: 24vw; opacity: 0.35; }
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .blur-1 { width: 70vw; height: 70vw; top: -20vw; left: -20vw; }
+  .blur-2 { width: 70vw; height: 70vw; bottom: -22vw; right: -22vw; }
+}
+@media (max-width: 520px) {
+  .actions { gap: 10px; }
+  .btn { width: 100%; }
+}
+
+/* Override Vite defaults coming from index.css */
+body { 
+  display: block;           /* Overrides flex from Vite's default */
+  min-height: auto; 
+  place-items: unset; 
+}

@@ -29,6 +29,8 @@ services:
     # Loads environment variables from backend/.env
     env_file:
       - ./backend/.env
+    volumes:
+      - ./backend/config/password-policy.toml:/app/config/password-policy.toml:ro  
 
   frontend:
     build: ./frontend

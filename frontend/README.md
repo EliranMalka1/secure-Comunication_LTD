@@ -35,32 +35,56 @@ This project is built with a modern and robust technology stack:
 
 ---
 
+
+
 ## 4. Folder Structure
 
-The project follows a standard Vite/React folder structure:
+The actual directory layout for the frontend is:
 
 ```
-/
+frontend/
 ├── public/
-│   └── vite.svg        # Static assets
+│   └── vite.svg
 ├── src/
-│   ├── assets/         # Images, icons, etc.
-│   ├── App.css         # Global styles
-│   ├── App.jsx         # Main application component
-│   ├── index.css       # Root CSS file
-│   └── main.jsx        # Application entry point
-├── .dockerignore       # Files to ignore in Docker builds
-├── .gitignore          # Files to ignore in Git
-├── Dockerfile          # Docker configuration
-├── index.html          # Main HTML file
-├── package.json        # Project dependencies and scripts
-└── vite.config.js      # Vite configuration
+│   ├── assets/
+│   │   └── react.svg
+│   ├── lib/
+│   │   └── api.js
+│   ├── pages/
+│   │   └── Register.jsx
+│   ├── App.css
+│   ├── App.jsx
+│   ├── index.css
+│   └── main.jsx
+├── .dockerignore
+├── .env
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── eslint.config.js
+├── index.html
+├── nginx.conf
+├── node_modules/
+├── package-lock.json
+├── package.json
+└── vite.config.js
 ```
 
--   `public/`: Contains static assets that are not processed by the build tool.
+-   `public/`: Contains static assets that are not processed by the build tool (e.g., `vite.svg`).
 -   `src/`: Contains all the application source code, including components, styles, and assets.
+-   `src/assets/`: Static assets for the app (e.g., `react.svg`).
+-   `src/lib/`: Utility libraries and API logic (e.g., `api.js`).
+-   `src/pages/`: React page components (e.g., `Register.jsx`).
+-   `.env`, `.env.example`: Environment variable files for configuration.
+-   `.dockerignore`, `.gitignore`: Ignore files for Docker and Git.
 -   `Dockerfile`: Defines the multi-stage Docker build process.
+-   `nginx.conf`: Nginx configuration for production deployment.
 -   `index.html`: The main HTML template for the application.
+-   `eslint.config.js`: ESLint configuration for code linting.
+-   `package.json`, `package-lock.json`: Project dependencies and scripts.
+-   `vite.config.js`: Vite configuration file.
+-   `README.md`: Project documentation.
 
 ---
 
@@ -129,7 +153,21 @@ This frontend application meets the following project requirements:
 
 ---
 
-## 10. License / Authors
+## 10. Environment Variables
+Copy `.env.example` to `.env` and update values:
+
+```bash
+cp config/.env.example /.env
+```
+
+Required variables:
+
+- `VITE_API_URL`  
+
+---
+
+
+## 11. License / Authors
 
 This project is licensed under the **MIT License**.
 

@@ -27,20 +27,28 @@ Node.js is **not required** for the backend (only for the frontend).
 
 ---
 
+
 ## Folder Structure
 ```
 backend/
-├── cmd/                 # Application entry point
+├── cmd/
 │   └── main.go
-├── internal/            # Core logic
-│   ├── handlers/        # HTTP route handlers
-│   ├── services/        # Business logic
-│   └── repository/      # Database access
 ├── config/
+│   ├── .env.example
 │   ├── password-policy.toml
-│   └── .env.example
+│   └── policy.go
 ├── db/
-│   └── init.sql         # Schema + seed data (executed once on DB init)
+│   └── init.sql
+├── internal/
+│   ├── handlers/
+│   │   └── auth.go
+│   ├── repository/
+│   │   └── db.go
+│   └── services/
+│       └── password.go
+├── .dockerignore
+├── .env
+├── Dockerfile
 ├── go.mod
 ├── go.sum
 └── README.md
@@ -50,25 +58,28 @@ backend/
 
 ## Configuration
 
+
 ### Environment Variables
 Copy `.env.example` to `.env` and update values:
 
 ```bash
-cp config/.env.example /.env
+cp config/.env.example .env
 ```
 
 Required variables:
 
-- `DB_HOST`  
-- `DB_PORT`  
-- `DB_USER`  
-- `DB_PASS`  
-- `DB_NAME`  
-- `HMAC_SECRET`  
-- `JWT_SECRET`  
-- `SMTP_HOST`  
-- `SMTP_PORT`  
-- `SMTP_FROM`  
+- `PORT`                # API server port
+- `DB_HOST`             # MySQL host (service name in Docker Compose)
+- `DB_PORT`             # MySQL port
+- `DB_USER`             # MySQL user
+- `DB_PASS`             # MySQL password
+- `DB_NAME`             # MySQL database name
+- `HMAC_SECRET`         # HMAC secret for password hashing
+- `JWT_SECRET`          # JWT signing secret
+- `SMTP_HOST`           # SMTP server host (MailHog for dev)
+- `SMTP_PORT`           # SMTP server port
+- `SMTP_FROM`           # Default sender email
+- `PASSWORD_POLICY_FILE`# Path to password policy TOML file
 
 ### Password Policy
 Defined in `config/password-policy.toml`:

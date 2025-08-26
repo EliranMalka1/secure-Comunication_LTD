@@ -85,16 +85,20 @@ secure-Comunication_LTD/
 │   │   └── main.go
 │   ├── config/
 │   │   ├── .env.example
-│   │   └── password-policy.toml
+│   │   ├── password-policy.toml
+│   │   └── policy.go
 │   ├── db/
 │   │   └── init.sql
 │   ├── internal/
 │   │   ├── handlers/
+│   │   │   └── auth.go
 │   │   ├── repository/
+│   │   │   └── db.go
 │   │   └── services/
-│   ├── Dockerfile
+│   │       └── password.go
 │   ├── .dockerignore
-│   ├── .env # Need to ber added
+│   ├── .env
+│   ├── Dockerfile
 │   ├── go.mod
 │   ├── go.sum
 │   └── README.md
@@ -103,12 +107,19 @@ secure-Comunication_LTD/
 │   ├── public/
 │   │   └── vite.svg
 │   ├── src/
+│   │   ├── assets/
+│   │   │   └── react.svg
+│   │   ├── lib/
+│   │   │   └── api.js
+│   │   ├── pages/
+│   │   │   └── Register.jsx
 │   │   ├── App.css
 │   │   ├── App.jsx
-│   │   ├── assets/
 │   │   ├── index.css
 │   │   └── main.jsx
 │   ├── .dockerignore
+│   ├── .env
+│   ├── .env.example
 │   ├── .gitignore
 │   ├── Dockerfile
 │   ├── README.md
@@ -163,12 +174,12 @@ Once the services are running, you can access them at the following locations:
 
 ## Environment Variables
 
-The `.env` file is crucial for configuring the application.
+The `.env` file is crucial for configuring the application backend.
 
 | Variable | Description | Example |
 | :--- | :--- | :--- |
 | `PORT` | Port for the Go backend API. | `8080` |
-| `DB_HOST` | Database host name (service name in Docker Compose is usually `db` or `mysql`). | `MySQL` |
+| `DB_HOST` | Database host name (service name in Docker Compose is usually `db`). | `db` |
 | `DB_PORT` | Database port. | `3306` |
 | `DB_USER` | Database username. | `app` |
 | `DB_PASS` | Database password. | `secret` |
@@ -178,6 +189,14 @@ The `.env` file is crucial for configuring the application.
 | `SMTP_HOST` | SMTP server host (MailHog for dev, e.g. `mailhog` or `localhost`). | `localhost` |
 | `SMTP_PORT` | SMTP server port. | `1025` |
 | `SMTP_FROM` | Default sender email address. | `no-reply@communication_ltd.local` |
+| `PASSWORD_POLICY_FILE` | Path to password policy TOML file. | `config/password-policy.toml` |
+
+
+And frontend:
+
+| Variable | Description | Example |
+| :--- | :--- | :--- |
+| `PVITE_API_URL` | The backend api URL. | `http://localhost:8080` |
 
 ---
 

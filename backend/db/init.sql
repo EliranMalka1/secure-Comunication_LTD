@@ -11,9 +11,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(150) NOT NULL UNIQUE,
     email VARCHAR(254) NOT NULL UNIQUE,
-    password_hmac CHAR(64) NOT NULL,         -- HMAC-SHA256 hex
-    salt VARBINARY(16) NOT NULL,             -- 16 random bytes
+    password_hmac CHAR(64) NOT NULL,      -- HMAC-SHA256 hex (64)
+    salt VARBINARY(16) NOT NULL,          -- 16 random bytes
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,  -- <— אימות מייל
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -29,12 +30,24 @@ CREATE TABLE IF NOT EXISTS password_history (
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    token_sha1 CHAR(40) NOT NULL,            -- SHA-1 hex
+    token_sha1 CHAR(40) NOT NULL,         -- SHA-1 hex (40)
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY uq_prt_token (token_sha1),
     INDEX idx_prt_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- אימות מייל לאחר הרשמה
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_sha1 CHAR(40) NOT NULL,         -- נשמר רק ה-hash של הטוקן
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_evt_token (token_sha1),
+    INDEX idx_evt_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS customers (

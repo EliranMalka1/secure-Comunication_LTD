@@ -65,6 +65,7 @@ func main() {
 
 	// Auth
 	e.POST("/api/register", handlers.Register(db, pol))
+	e.GET("/api/verify-email", handlers.VerifyEmail(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

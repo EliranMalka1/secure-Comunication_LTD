@@ -26,6 +26,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     # Loads environment variables from backend/.env
     env_file:
       - ./backend/.env
@@ -38,6 +40,12 @@ services:
       - "3000:80"
     depends_on:
       - backend
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI    
 
 volumes:
   db_data:

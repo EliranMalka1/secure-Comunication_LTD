@@ -62,6 +62,51 @@ func VerifyEmail(db *sqlx.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "commit error"})
 		}
 
-		return c.JSON(http.StatusOK, map[string]string{"message": "Email verified successfully"})
+		return c.HTML(http.StatusOK, `
+  <!doctype html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Email Verified</title>
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        background: linear-gradient(135deg, #0f1221, #1b2b4b);
+        color: #f0f0f0;
+        text-align: center;
+        padding-top: 10%;
+      }
+      .card {
+        display: inline-block;
+        padding: 32px 48px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+      }
+      h2 { margin-bottom: 12px; }
+      a {
+        display:inline-block;
+        margin-top: 16px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        background: linear-gradient(135deg,#6c8bff,#55e7ff);
+        color: #0b1120;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a:hover { box-shadow: 0 4px 12px rgba(110,160,255,0.5); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>✅ Email Verified</h2>
+      <p>Your account is now active. You can sign in.</p>
+      <a href="http://localhost:3000/login">Go to Sign In</a>
+    </div>
+  </body>
+  </html>
+`)
+
 	}
 }

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hmac CHAR(64) NOT NULL,      -- HMAC-SHA256 hex (64)
     salt VARBINARY(16) NOT NULL,          -- 16 random bytes
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    is_verified BOOLEAN NOT NULL DEFAULT FALSE,  -- <— אימות מייל
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,  -- Email verification
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -38,11 +38,11 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     INDEX idx_prt_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- אימות מייל לאחר הרשמה
+-- Email verification after registration
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    token_sha1 CHAR(40) NOT NULL,         -- נשמר רק ה-hash של הטוקן
+    token_sha1 CHAR(40) NOT NULL,         -- Only the hash of the token is stored
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

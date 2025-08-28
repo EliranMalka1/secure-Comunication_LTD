@@ -150,9 +150,13 @@ secure-Comunication_LTD/
     ```bash
     cp backend/config/.env.example backend/.env
     ```
+    And
+    ```bash
+    cp frontend/config/.env.example backend/.env
+    ```
     *Fill in the required values in the `.env` file as described in the Environment Variables section.*
 
-3.  **Build and Run Containers**
+4.  **Build and Run Containers**
     Use Docker Compose to build the images and start all services in detached mode.
     ```bash
     docker compose up -d --build

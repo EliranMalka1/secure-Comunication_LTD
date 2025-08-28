@@ -204,26 +204,6 @@ And frontend:
 
 ---
 
-
-
-## How to Run Tests
-
-*(This section should be updated if tests are provided)*
-
-To run backend tests:
-```bash
-cd backend/
-go test ./...
-```
-
-To run frontend tests:
-```bash
-cd frontend/
-npm test
-```
-
----
-
 ## Usage Examples
 
 1.  **Register a new user**: Navigate to `http://localhost:3000/register` and fill out the form.

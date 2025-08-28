@@ -15,7 +15,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    # Expose 3306 outside only if really needed:
     ports:
       - "3306:3306"
 

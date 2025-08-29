@@ -31,7 +31,7 @@ export default function Register() {
         email: form.email.trim(),
         password: form.password,
       });
-      setMsg({ type: "ok", text: "Account created. You may sign in now." });
+      setMsg({ type: "ok", text: "Account created. And verify mail sent to your email." });
       setForm({ username: "", email: "", password: "", confirm: "" });
     } catch (err) {
       setMsg({ type: "error", text: err.message || "Registration failed" });
@@ -81,7 +81,7 @@ export default function Register() {
 
           <div className="actions" style={{ justifyContent: "flex-end" }}>
             <button className="btn ghost" type="button" onClick={() => window.history.back()}>
-              Cancel
+              Back
             </button>
             <button className="btn primary" disabled={!basicOk || submitting}>
               {submitting ? "Creating..." : "Create Account"}

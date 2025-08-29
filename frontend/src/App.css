@@ -129,3 +129,17 @@ body {
   min-height: auto; 
   place-items: unset; 
 }
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: #e8e8f0;
+  outline: none;
+}
+.input:focus {
+  border-color: rgba(110,160,255,0.6);
+  box-shadow: 0 0 0 2px rgba(110,160,255,0.15);
+}

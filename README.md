@@ -18,7 +18,7 @@ flowchart TD
 
 ## Project Overview
 
-Welcome to **Communication_LTD (Secure Version)**, a web application developed as a final project for a cybersecurity course. This application provides a platform for managing users and customers, with a strong emphasis on security best practices.
+Welcome to **Communication_LTD (Secure Version)**, a web application developed as a final project for a cybersecurity course. This application provides a platform for managing users and customers, with a strong emphasis on security best practices. This is the secure version; a deliberately vulnerable version will be implemented later for comparison.
 
 The core functionalities of the system include:
 -   **User Management**: Secure registration and login functionalities.
@@ -36,13 +36,13 @@ This project incorporates several security measures to protect user data and pre
 
 | Feature | Implementation | Protection Against |
 | :--- | :--- | :--- |
-| **Password Hashing** | HMAC+SHA512 with a unique Salt for each user. | Rainbow table attacks, dictionary attacks. |
+| **Password Hashing** | HMAC+SHA256 with a unique Salt for each user. | Rainbow table attacks, dictionary attacks. |
 | **Reset Token Hashing** | SHA-1 for generating password reset tokens. | Token guessing. |
 | **Password Policy** | - Minimum length (e.g., 12 characters).<br>- Complexity (uppercase, lowercase, numbers, symbols).<br>- Password history to prevent reuse.<br>- Account lockout after multiple failed login attempts. | Brute-force attacks, weak passwords. |
 | **SQL Injection (SQLi)** | Use of prepared statements in all database queries. | Injection of malicious SQL code. |
 | **Cross-Site Scripting (XSS)** | - **Backend**: Strict output encoding on all data rendered in templates.<br>- **Frontend**: React's inherent data binding and JSX escaping. | Injection of malicious scripts into the web application. |
-| **Cross-Site Request Forgery (CSRF)** | Implementation of Anti-CSRF tokens in sensitive forms. | Unauthorized commands being performed on behalf of an authenticated user. |
-| **Rate Limiting** | Throttling login attempts and other sensitive endpoints. | Brute-force attacks, denial-of-service (DoS). |
+| **Cross-Site Request Forgery (CSRF)** | Not Implemented | Unauthorized commands being performed on behalf of an authenticated user. |
+| **Rate Limiting** | Partially Implemented. Tracks login attempts, but lockout logic is not yet enforced. | Brute-force attacks, denial-of-service (DoS). |
 
 ---
 
@@ -51,7 +51,9 @@ This project incorporates several security measures to protect user data and pre
 | Component | Technology | Description |
 | :--- | :--- | :--- |
 | **Frontend** | [React](https://reactjs.org/) (with Node.js) | A JavaScript library for building user interfaces. |
+| **Frontend Build** | Vite + React (with Nginx serving static files in Docker) | A JavaScript library for building user interfaces. |
 | **Backend** | [Go](https://golang.org/) with [Echo Framework](https://echo.labstack.com/) | A high-performance, minimalist Go web framework. |
+| **Backend Mail** | MailHog for development SMTP. | An email testing tool for developers (for Forgot Password flow). |
 | **Database** | [MySQL](https://www.mysql.com/) | A popular open-source relational database. |
 | **Mail Server** | [MailHog](https://github.com/mailhog/MailHog) | An email testing tool for developers (for Forgot Password flow). |
 | **Containerization** | [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) | For creating and managing isolated application environments. |
@@ -71,11 +73,7 @@ Before you begin, ensure you have the following tools installed on your system:
 
 ---
 
-
-
-
 ## Folder Structure
-
 
 The actual directory layout for this project is:
 
@@ -92,10 +90,13 @@ secure-Comunication_LTD/
 │   │   └── init.sql
 │   ├── internal/
 │   │   ├── handlers/
-│   │   │   ├── auth.go
+│   │   │   ├── auth.go (includes registration)
 │   │   │   ├── login.go
 │   │   │   ├── logout.go
-│   │   │   └── verify.go
+│   │   │   ├── me.go
+│   │   │   └── verify.go (for email verification)
+│   │   ├── middleware/
+│   │   │   └── auth.go
 │   │   ├── repository/
 │   │   │   └── db.go
 │   │   └── services/
@@ -142,17 +143,6 @@ secure-Comunication_LTD/
 ├── LICENSE                   # Project license
 ├── README.md                 # Project documentation
 ```
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── nginx.conf
-│   ├── node_modules/
-│   ├── package-lock.json
-│   ├── package.json
-│   └── vite.config.js
-├── docker-compose.yml        # Docker Compose configuration
-├── LICENSE                   # Project license
-├── README.md                 # Project documentation
-```
 
 ---
 
@@ -167,11 +157,11 @@ secure-Comunication_LTD/
 2.  **Configure Environment Variables**
     Copy the example environment file and customize it with your local settings.
     ```bash
-    cp backend/config/.env.example backend/.env
+    cp backend/.env.example backend/.env
     ```
     And
     ```bash
-    cp frontend/config/.env.example backend/.env
+    cp frontend/.env.example frontend/.env
     ```
     *Fill in the required values in the `.env` file as described in the Environment Variables section.*
 
@@ -207,7 +197,7 @@ The `.env` file is crucial for configuring the application backend.
 | `DB_USER` | Database username. | `app` |
 | `DB_PASS` | Database password. | `secret` |
 | `DB_NAME` | Database name. | `secure_comm` |
-| `HMAC_SECRET` | Secret key for HMAC (used for password hashing). | `change_me_hmac` |
+| `HMAC_SECRET` | Secret key for HMAC (used for password hashing with SHA256). | `change_me_hmac` |
 | `JWT_SECRET` | Secret key for signing JWTs. | `change_me_jwt` |
 | `SMTP_HOST` | SMTP server host (MailHog for dev, e.g. `mailhog` or `localhost`). | `localhost` |
 | `SMTP_PORT` | SMTP server port. | `1025` |
@@ -219,23 +209,24 @@ And frontend:
 
 | Variable | Description | Example |
 | :--- | :--- | :--- |
-| `PVITE_API_URL` | The backend api URL. | `http://localhost:8080` |
+| `VITE_API_URL` | The backend api URL. | `http://localhost:8080` |
 
 ---
 
 ## Usage Examples
 
 1.  **Register a new user**: Navigate to `http://localhost:3000/register` and fill out the form.
-2.  **Login**: Go to `http://localhost:3000/login` and enter your credentials.
-3.  **Change Password**: Once logged in, go to your profile page to change your password.
-4.  **Reset Password**: On the login page, click "Forgot Password", enter your email, and follow the instructions sent to your inbox (viewable in the MailHog UI at `http://localhost:8025`).
+2.  **Email Verification**: After registration, check MailHog for a verification link before logging in.
+3.  **Login**: Go to `http://localhost:3000/login` and enter your credentials.
+4.  **Change Password**: Once logged in, go to your profile page to change your password.
+5.  **Reset Password**: On the login page, click "Forgot Password", enter your email, and follow the instructions sent to your inbox (viewable in the MailHog UI at `http://localhost:8025`).
 
 ---
 
 ## Notes for Development
 
 -   **MailHog**: The included MailHog service is for **development and testing only**. It captures all outgoing emails for easy inspection without sending them to actual recipients. For production, you would replace this with a real SMTP service like SendGrid or Amazon SES.
--   **Password Hashing**: HMAC+Salt is used here for educational purposes to demonstrate the principles of hashing and salting. In a **production environment**, it is strongly recommended to use a more robust and battle-tested adaptive hashing algorithm like **bcrypt** or **Argon2**.
+-   **Password Hashing**: HMAC+SHA256 with salt is used here for educational purposes to demonstrate the principles of hashing and salting. In a **production environment**, it is strongly recommended to use a more robust and battle-tested adaptive hashing algorithm like **bcrypt** or **Argon2**.
 
 ---
 
@@ -245,7 +236,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Authors
 
--   Eliran Malka(https://github.com/EliranMalka1)
--   Eliran Malka(https://github.com/EliranMalka1)
--   Eliran Malka(https://github.com/EliranMalka1)
--   Eliran Malka(https://github.com/EliranMalka1)
+- [Eliran Malka](https://github.com/EliranMalka1)

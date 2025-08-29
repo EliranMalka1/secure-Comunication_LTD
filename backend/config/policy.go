@@ -19,19 +19,27 @@ type policyFile struct {
 }
 
 func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
-	var pf policyFile
+	// אם אין קובץ – חזור לברירת המחדל עם שגיאה "רכה"
 	if _, err := os.Stat(path); err != nil {
-		return services.DefaultPolicy(), fmt.Errorf("policy file not found: %w", err)
-	}
-	if _, err := toml.DecodeFile(path, &pf); err != nil {
-		return services.DefaultPolicy(), fmt.Errorf("policy parse error: %w", err)
+		pp := services.DefaultPolicy()
+		return pp, fmt.Errorf("policy file not found, using defaults: %w", err)
 	}
 
-	// Map TOML file to PasswordPolicy
-	pp := services.PasswordPolicy{
-		MinLength: pf.MinLength,
+	var pf policyFile
+	if _, err := toml.DecodeFile(path, &pf); err != nil {
+		pp := services.DefaultPolicy()
+		return pp, fmt.Errorf("policy parse error, using defaults: %w", err)
 	}
-	// complexity_rules: ["has_upper","has_lower","has_digit","has_special"]
+
+	// מיפוי TOML → PasswordPolicy
+	pp := services.PasswordPolicy{
+		MinLength:        pf.MinLength,
+		History:          pf.History,
+		MaxLoginAttempts: pf.MaxLoginAttempts,
+		LockoutMinutes:   pf.LockoutMinutes,
+	}
+
+	// complexity_rules → בוליאנים
 	set := map[string]bool{}
 	for _, r := range pf.ComplexityRules {
 		set[strings.ToLower(strings.TrimSpace(r))] = true
@@ -40,5 +48,17 @@ func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
 	pp.RequireLower = set["has_lower"]
 	pp.RequireDigit = set["has_digit"]
 	pp.RequireSpecial = set["has_special"]
+
+	// ברירות מחדל אם הושארו 0 בקובץ
+	if pp.MinLength <= 0 {
+		pp.MinLength = services.DefaultPolicy().MinLength
+	}
+	if pp.MaxLoginAttempts <= 0 {
+		pp.MaxLoginAttempts = services.DefaultPolicy().MaxLoginAttempts
+	}
+	if pp.LockoutMinutes <= 0 {
+		pp.LockoutMinutes = services.DefaultPolicy().LockoutMinutes
+	}
+
 	return pp, nil
 }

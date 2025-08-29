@@ -37,6 +37,7 @@ This project is built with a modern and robust technology stack:
 
 
 
+
 ## 4. Folder Structure
 
 The actual directory layout for the frontend is:
@@ -51,6 +52,7 @@ frontend/
 │   ├── lib/
 │   │   └── api.js
 │   ├── pages/
+│   │   ├── Login.jsx
 │   │   └── Register.jsx
 │   ├── App.css
 │   ├── App.jsx

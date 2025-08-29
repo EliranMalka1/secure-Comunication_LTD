@@ -76,6 +76,7 @@ Before you begin, ensure you have the following tools installed on your system:
 
 ## Folder Structure
 
+
 The actual directory layout for this project is:
 
 ```
@@ -91,11 +92,17 @@ secure-Comunication_LTD/
 │   │   └── init.sql
 │   ├── internal/
 │   │   ├── handlers/
-│   │   │   └── auth.go
+│   │   │   ├── auth.go
+│   │   │   ├── login.go
+│   │   │   ├── logout.go
+│   │   │   └── verify.go
 │   │   ├── repository/
 │   │   │   └── db.go
 │   │   └── services/
-│   │       └── password.go
+│   │       ├── jwt.go
+│   │       ├── mailer.go
+│   │       ├── password.go
+│   │       └── token.go
 │   ├── .dockerignore
 │   ├── .env
 │   ├── Dockerfile
@@ -112,6 +119,7 @@ secure-Comunication_LTD/
 │   │   ├── lib/
 │   │   │   └── api.js
 │   │   ├── pages/
+│   │   │   ├── Login.jsx
 │   │   │   └── Register.jsx
 │   │   ├── App.css
 │   │   ├── App.jsx
@@ -123,6 +131,17 @@ secure-Comunication_LTD/
 │   ├── .gitignore
 │   ├── Dockerfile
 │   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── node_modules/
+│   ├── package-lock.json
+│   ├── package.json
+│   └── vite.config.js
+├── docker-compose.yml        # Docker Compose configuration
+├── LICENSE                   # Project license
+├── README.md                 # Project documentation
+```
 │   ├── eslint.config.js
 │   ├── index.html
 │   ├── nginx.conf

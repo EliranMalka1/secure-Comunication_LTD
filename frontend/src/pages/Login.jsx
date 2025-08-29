@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiLogin } from "../lib/api";
@@ -11,18 +10,13 @@ export default function Login() {
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Client-side validation: non-empty fields + basic structure for id (email or username)
   const looksLikeEmail = (s) => s.includes("@") && s.includes(".");
   const looksLikeUsername = (s) => /^[a-zA-Z0-9._-]{3,}$/.test(s);
 
   const validate = () => {
-    if (!form.id.trim() || !form.password.trim()) {
-      return "Please fill in all required fields.";
-    }
+    if (!form.id.trim() || !form.password.trim()) return "Please fill in all required fields.";
     const id = form.id.trim();
-    if (!(looksLikeEmail(id) || looksLikeUsername(id))) {
-      return "Enter a valid email or username.";
-    }
+    if (!(looksLikeEmail(id) || looksLikeUsername(id))) return "Enter a valid email or username.";
     return "";
   };
 
@@ -31,32 +25,19 @@ export default function Login() {
     setMsg({ type: "", text: "" });
 
     const err = validate();
-    if (err) {
-      setMsg({ type: "error", text: err });
-      return;
-    }
+    if (err) return setMsg({ type: "error", text: err });
 
     try {
       setLoading(true);
-  // Send to server. The server will set httpOnly cookie if login succeeds
-      const res = await api.post("/api/login", {
+      await apiLogin({
         id: form.id.trim(),
         password: form.password,
-  otp: form.otp || undefined, // Leave optional for future 2FA
+        otp: form.otp || undefined,
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const text = data?.error || "Login failed. Check your credentials.";
-        setMsg({ type: "error", text });
-        return;
-      }
-
       setMsg({ type: "success", text: "Logged in successfully." });
-  // Small delay for UX, then redirect
       setTimeout(() => nav("/"), 600);
     } catch (e) {
-      setMsg({ type: "error", text: "Network error. Please try again." });
+      setMsg({ type: "error", text: e?.message || "Network error. Please try again." });
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,9 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-// Helper: returns JSON if available, returns {} otherwise
+// Helpers
 async function parseJson(res) {
   try { return await res.json(); } catch { return {}; }
 }
-
-// Helper: throws error with a consistent message
 async function assertOk(res) {
   if (!res.ok) {
     const data = await parseJson(res);
@@ -15,11 +13,11 @@ async function assertOk(res) {
   return res;
 }
 
-async function post(path, body) {
+async function post(path, body, { withCredentials = true } = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-  credentials: "include",          // Important for httpOnly cookies
+    credentials: withCredentials ? "include" : "omit",
     body: JSON.stringify(body),
   });
   await assertOk(res);
@@ -29,7 +27,7 @@ async function post(path, body) {
 async function get(path) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "GET",
-  credentials: "include",          // Important for httpOnly cookies
+    credentials: "include",
   });
   await assertOk(res);
   return parseJson(res);
@@ -37,11 +35,12 @@ async function get(path) {
 
 // === Public API ===
 
+// Registration should not send cookies
 export async function apiRegister(payload) {
   const res = await fetch(`${BASE_URL}/api/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-  credentials: "omit",       // Do not send cookies during registration
+    credentials: "omit",
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
@@ -51,18 +50,21 @@ export async function apiRegister(payload) {
   return data;
 }
 
-
+// Step 1: password login (server will return { mfa_required: true } if 2FA is on)
 export async function apiLogin(payload) {
-  // payload: { id, password, otp? }
   return post("/api/login", payload);
 }
 
-export async function apiLogout() {
-  // Server will return 200 and clear cookie
-  return post("/api/logout", {});
+// Step 2: submit OTP code
+export async function apiLoginMFA({ id, code }) {
+  return post("/api/login/mfa", { id, code });
 }
 
+// Optional: logout + whoami
+export async function apiLogout() {
+  return post("/api/logout", {}, { withCredentials: true });
+}
 export async function apiMe() {
-  // Server will return user details based on the cookie (when implemented)
   return get("/api/me");
 }
+

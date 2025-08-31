@@ -71,6 +71,7 @@ func main() {
 	e.POST("/api/login", handlers.Login(db, pol))
 	e.POST("/api/logout", handlers.Logout())
 	e.GET("/api/me", handlers.Me(), middlewarex.RequireAuth)
+	e.POST("/api/login/mfa", handlers.LoginMFA(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

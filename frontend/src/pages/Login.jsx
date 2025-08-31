@@ -65,7 +65,7 @@ export default function Login() {
 
       // Otherwise (if in the future you allow login without 2FA)
       setMsg({ type: "success", text: "Logged in successfully." });
-      setTimeout(() => nav("/"), 500);
+      setTimeout(() => nav("/dashboard"), 500);
     } catch (e) {
       setMsg({ type: "error", text: e?.message || "Login failed. Please try again." });
     } finally {

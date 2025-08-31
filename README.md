@@ -1,239 +1,229 @@
 # Secure Communication LTD
 
-## System Architecture Diagram
+A secure web application designed to demonstrate and contrast secure coding practices. The frontend is built with React, Vite, and served by Nginx, while the backend is a Go/Echo API connected to a MySQL database. For development, MailHog is used to capture and display emails. A separate, intentionally vulnerable version will be created later for educational comparison.
+
+## System Architecture
 
 ```mermaid
 flowchart TD
-    A["React Frontend\n(localhost:3000)"] -->|HTTP/REST| B["Go Backend API\n(localhost:8080)"]
-    B -->|SQL| C["MySQL Database"]
-    B -->|SMTP| D["MailHog SMTP/Web UI\n(localhost:8025)"]
-
-    style A fill:#282c34,stroke:#61DAFB,stroke-width:2px,color:#fff
-    style B fill:#00ADD8,stroke:#fff,stroke-width:2px,color:#fff
-    style C fill:#4479A1,stroke:#fff,stroke-width:2px,color:#fff
-    style D fill:#c7c7c7,stroke:#000,stroke-width:2px,color:#000
+  A["React Frontend (Vite/Nginx) :3000"] -->|"HTTP/REST"| B["Go Backend API (Echo) :8080"]
+  B -->|"SQL queries"| C["MySQL (db) :3306"]
+  B -->|"SMTP (dev)"| D["MailHog UI :8025 / SMTP :1025"]
 ```
-
-# Communication_LTD (Secure Version)
 
 ## Project Overview
 
-Welcome to **Communication_LTD (Secure Version)**, a web application developed as a final project for a cybersecurity course. This application provides a platform for managing users and customers, with a strong emphasis on security best practices. This is the secure version; a deliberately vulnerable version will be implemented later for comparison.
+- **User Registration:** New users can register, triggering an email verification process.
+- **Secure Login:** Mandatory Two-Factor Authentication (2FA) via Email OTP. OTPs are single-use, 6-digit codes with a ~10-minute expiry, are invalidated after use, and have throttled submission attempts.
+- **Password Policy:** Enforced via a TOML configuration file, defining minimum length, complexity requirements, and account lockout policies.
+- **Customer Management:** Secure CRUD operations for customer data (implemented with prepared statements to prevent SQLi).
+- **Password Recovery:** A secure forgot/reset password flow using hashed tokens delivered via email (captured by MailHog in development).
 
-The core functionalities of the system include:
--   **User Management**: Secure registration and login functionalities.
--   **Password Policy**: Enforces strong password creation and management rules.
--   **Customer Management**: Basic CRUD operations for managing customer data.
--   **Forgot/Reset Password**: A secure flow for users to recover their accounts.
+## Security Controls
 
-This version of the project has been specifically hardened against common web vulnerabilities, serving as a practical example of securing a modern web application.
-
----
-
-## Security Features Implemented
-
-This project incorporates several security measures to protect user data and prevent attacks:
-
-| Feature | Implementation | Protection Against |
-| :--- | :--- | :--- |
-| **Password Hashing** | HMAC+SHA256 with a unique Salt for each user. | Rainbow table attacks, dictionary attacks. |
-| **Reset Token Hashing** | SHA-1 for generating password reset tokens. | Token guessing. |
-| **Password Policy** | - Minimum length (e.g., 12 characters).<br>- Complexity (uppercase, lowercase, numbers, symbols).<br>- Password history to prevent reuse.<br>- Account lockout after multiple failed login attempts. | Brute-force attacks, weak passwords. |
-| **SQL Injection (SQLi)** | Use of prepared statements in all database queries. | Injection of malicious SQL code. |
-| **Cross-Site Scripting (XSS)** | - **Backend**: Strict output encoding on all data rendered in templates.<br>- **Frontend**: React's inherent data binding and JSX escaping. | Injection of malicious scripts into the web application. |
-| **Cross-Site Request Forgery (CSRF)** | Not Implemented | Unauthorized commands being performed on behalf of an authenticated user. |
-| **Rate Limiting** | Partially Implemented. Tracks login attempts, but lockout logic is not yet enforced. | Brute-force attacks, denial-of-service (DoS). |
-
----
+| Control                | Implementation                               | Notes                                                                                                                                        |
+| :--------------------- | :------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Password storage**   | HMAC-SHA256 + per-user 16-byte salt          | Secret key is managed via the `HMAC_SECRET` environment variable. **Note:** `bcrypt` or `Argon2` is strongly recommended for production environments. |
+| **Email verification** | SHA-1 hashed token, single-use, expiry       | Stored in the `email_verification_tokens` table.                                                                                             |
+| **2FA (Email OTP)**    | 6-digit code, single-use, ~10 min TTL        | Stored hashed (e.g., SHA-1), with limited attempts. Invalidated on success or expiry.                                                        |
+| **SQL Injection**      | Prepared statements via `sqlx`               | All database queries are parameterized to prevent SQLi attacks.                                                                              |
+| **Cross-Site Scripting (XSS)** | React escaping; backend returns JSON only    | React automatically escapes data rendered in components. The API exclusively serves JSON, avoiding server-side template injection.         |
+| **Rate limiting / lockout** | Enforced by TOML config                      | `max_login_attempts` and `lockout_minutes` are checked before password verification.                                                         |
+| **CSRF**               | Not implemented (JSON API + httpOnly cookie) | The API is designed to be stateless where possible. For stateful operations, a robust CSRF strategy would be required in production.          |
 
 ## Tech Stack
 
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Frontend** | [React](https://reactjs.org/) (with Node.js) | A JavaScript library for building user interfaces. |
-| **Frontend Build** | Vite + React (with Nginx serving static files in Docker) | A JavaScript library for building user interfaces. |
-| **Backend** | [Go](https://golang.org/) with [Echo Framework](https://echo.labstack.com/) | A high-performance, minimalist Go web framework. |
-| **Backend Mail** | MailHog for development SMTP. | An email testing tool for developers (for Forgot Password flow). |
-| **Database** | [MySQL](https://www.mysql.com/) | A popular open-source relational database. |
-| **Mail Server** | [MailHog](https://github.com/mailhog/MailHog) | An email testing tool for developers (for Forgot Password flow). |
-| **Containerization** | [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) | For creating and managing isolated application environments. |
+| Tier                | Technology              | Notes                                                      |
+| :------------------ | :---------------------- | :--------------------------------------------------------- |
+| **Frontend**        | React, Vite             | UI library and development server.                         |
+| **Backend**         | Go (Echo)               | High-performance, extensible Go web framework.             |
+| **Database**        | MySQL                   | Relational database for data persistence.                  |
+| **Web Server (Prod)** | Nginx                   | Serves the static React build in the production container. |
+| **Mail (Dev)**      | MailHog                 | Captures development emails for viewing (UI: 8025, SMTP: 1025). |
+| **Containerization**  | Docker, Docker Compose  | For building and running the application stack.            |
 
----
+## Prerequisites
 
-## Prerequisites / Requirements
-
-Before you begin, ensure you have the following tools installed on your system:
-
--   **Go**: Version 1.24 or higher
--   **Node.js**: Version 18 or higher (with `npm` or `yarn`)
--   **Docker**: Version 20.10 or higher
--   **Docker Compose**: Version 2.x
--   **Git**: For cloning the repository
--   **Optional**: `golang-migrate` for database migrations if you prefer to run them outside of Docker.
-
----
+- Go 1.24+
+- Node.js 18+
+- Docker 20.10+ & Docker Compose v2
+- Git
 
 ## Folder Structure
 
-The actual directory layout for this project is:
-
 ```
 secure-Comunication_LTD/
-├── backend/                  # Go backend application
-│   ├── cmd/
-│   │   └── main.go
+├── backend/
+│   ├── cmd/main.go
 │   ├── config/
 │   │   ├── .env.example
 │   │   ├── password-policy.toml
 │   │   └── policy.go
-│   ├── db/
-│   │   └── init.sql
+│   ├── db/init.sql
 │   ├── internal/
 │   │   ├── handlers/
-│   │   │   ├── auth.go (includes registration)
-│   │   │   ├── login.go
+│   │   │   ├── auth.go          # register + email verification link
+│   │   │   ├── login.go         # step 1: password + start OTP
+│   │   │   ├── login_mfa.go     # step 2: verify OTP
 │   │   │   ├── logout.go
 │   │   │   ├── me.go
-│   │   │   └── verify.go (for email verification)
-│   │   ├── middleware/
-│   │   │   └── auth.go
-│   │   ├── repository/
-│   │   │   └── db.go
+│   │   │   └── verify.go        # email verification landing
+│   │   ├── middleware/auth.go
+│   │   ├── repository/db.go
 │   │   └── services/
 │   │       ├── jwt.go
 │   │       ├── mailer.go
 │   │       ├── password.go
 │   │       └── token.go
-│   ├── .dockerignore
-│   ├── .env
 │   ├── Dockerfile
 │   ├── go.mod
 │   ├── go.sum
 │   └── README.md
-├── config/                   # Global configuration files (currently empty)
-├── frontend/                 # React frontend application
-│   ├── public/
-│   │   └── vite.svg
+├── frontend/
+│   ├── public/vite.svg
 │   ├── src/
-│   │   ├── assets/
-│   │   │   └── react.svg
-│   │   ├── lib/
-│   │   │   └── api.js
+│   │   ├── assets/react.svg
+│   │   ├── lib/api.js
 │   │   ├── pages/
+│   │   │   ├── Register.jsx
 │   │   │   ├── Login.jsx
-│   │   │   └── Register.jsx
+│   │   │   ├── Forgot.jsx
+│   │   │   ├── Reset.jsx
+│   │   │   └── Dashboard.jsx
 │   │   ├── App.css
 │   │   ├── App.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
-│   ├── .dockerignore
-│   ├── .env
 │   ├── .env.example
-│   ├── .gitignore
 │   ├── Dockerfile
-│   ├── README.md
-│   ├── eslint.config.js
-│   ├── index.html
 │   ├── nginx.conf
-│   ├── node_modules/
-│   ├── package-lock.json
 │   ├── package.json
 │   └── vite.config.js
-├── docker-compose.yml        # Docker Compose configuration
-├── LICENSE                   # Project license
-├── README.md                 # Project documentation
+├── docker-compose.yml
+├── LICENSE
+└── README.md
 ```
-
----
-
-## Setup Instructions
-
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/EliranMalka1/secure-Comunication_LTD.git
-    cd secure-Comunication_LTD
-    ```
-
-2.  **Configure Environment Variables**
-    Copy the example environment file and customize it with your local settings.
-    ```bash
-    cp backend/.env.example backend/.env
-    ```
-    And
-    ```bash
-    cp frontend/.env.example frontend/.env
-    ```
-    *Fill in the required values in the `.env` file as described in the Environment Variables section.*
-
-4.  **Build and Run Containers**
-    Use Docker Compose to build the images and start all services in detached mode.
-    ```bash
-    docker compose up -d --build
-    ```
----
-
-## Access Points
-
-Once the services are running, you can access them at the following locations:
-
-| Service | URL / Host | Port |
-| :--- | :--- | :--- |
-| **React Frontend** | `http://localhost:3000` | `3000` |
-| **Go Backend API** | `http://localhost:8080` | `8080` |
-| **MailHog Web UI** | `http://localhost:8025` | `8025` |
-| **MySQL Database** | `localhost` (from host) / `db` (from Docker network) | `3306` |
-
----
 
 ## Environment Variables
 
-The `.env` file is crucial for configuring the application backend.
+You must create `.env` files for both the backend and frontend services.
 
-| Variable | Description | Example |
-| :--- | :--- | :--- |
-| `PORT` | Port for the Go backend API. | `8080` |
-| `DB_HOST` | Database host name (service name in Docker Compose is usually `db`). | `db` |
-| `DB_PORT` | Database port. | `3306` |
-| `DB_USER` | Database username. | `app` |
-| `DB_PASS` | Database password. | `secret` |
-| `DB_NAME` | Database name. | `secure_comm` |
-| `HMAC_SECRET` | Secret key for HMAC (used for password hashing with SHA256). | `change_me_hmac` |
-| `JWT_SECRET` | Secret key for signing JWTs. | `change_me_jwt` |
-| `SMTP_HOST` | SMTP server host (MailHog for dev, e.g. `mailhog` or `localhost`). | `localhost` |
-| `SMTP_PORT` | SMTP server port. | `1025` |
-| `SMTP_FROM` | Default sender email address. | `no-reply@communication_ltd.local` |
-| `PASSWORD_POLICY_FILE` | Path to password policy TOML file. | `config/password-policy.toml` |
+### Backend
 
+Copy the example file from the repository root:
+```sh
+cp backend/config/.env.example backend/.env
+```
 
-And frontend:
+Update the `backend/.env` file with the following variables:
+- `PORT`: Port for the backend API (e.g., `8080`).
+- `DB_HOST`: Database service name (e.g., `db`).
+- `DB_PORT`: Database port (e.g., `3306`).
+- `DB_USER`: Database user (e.g., `user`).
+- `DB_PASS`: Database password (e.g., `password`).
+- `DB_NAME`: Database name (e.g., `app_db`).
+- `HMAC_SECRET`: A long, random string for signing tokens and hashing passwords.
+- `JWT_SECRET`: A long, random string for JWT signing.
+- `SMTP_HOST`: MailHog service name (e.g., `mailhog`).
+- `SMTP_PORT`: MailHog SMTP port (e.g., `1025`).
+- `SMTP_FROM`: Default "from" address for emails (e.g., `no-reply@secure.com`).
+- `PASSWORD_POLICY_FILE`: Path to the password policy config (default: `config/password-policy.toml`).
+- `BACKEND_PUBLIC_URL`: Publicly accessible URL for the backend, used for email links (e.g., `http://localhost:8080`).
 
-| Variable | Description | Example |
-| :--- | :--- | :--- |
-| `VITE_API_URL` | The backend api URL. | `http://localhost:8080` |
+### Frontend
 
----
+Copy the example file from the repository root:
+```sh
+cp frontend/.env.example frontend/.env
+```
 
-## Usage Examples
+Update the `frontend/.env` file with the following variable:
+- `VITE_API_URL`: The full URL to the backend API (e.g., `http://localhost:8080`).
 
-1.  **Register a new user**: Navigate to `http://localhost:3000/register` and fill out the form.
-2.  **Email Verification**: After registration, check MailHog for a verification link before logging in.
-3.  **Login**: Go to `http://localhost:3000/login` and enter your credentials.
-4.  **Change Password**: Once logged in, go to your profile page to change your password.
-5.  **Reset Password**: On the login page, click "Forgot Password", enter your email, and follow the instructions sent to your inbox (viewable in the MailHog UI at `http://localhost:8025`).
+## Setup & Run
 
----
+The entire application stack can be launched using Docker Compose.
 
-## Notes for Development
+From the repository root, run:
+```sh
+docker compose up -d --build
+```
 
--   **MailHog**: The included MailHog service is for **development and testing only**. It captures all outgoing emails for easy inspection without sending them to actual recipients. For production, you would replace this with a real SMTP service like SendGrid or Amazon SES.
--   **Password Hashing**: HMAC+SHA256 with salt is used here for educational purposes to demonstrate the principles of hashing and salting. In a **production environment**, it is strongly recommended to use a more robust and battle-tested adaptive hashing algorithm like **bcrypt** or **Argon2**.
+### Access Points
 
----
+| Service             | URL                                                    |
+| :------------------ | :----------------------------------------------------- |
+| **Frontend (Nginx)**  | http://localhost:3000                                  |
+| **Backend (Echo)**    | http://localhost:8080                                  |
+| **MailHog UI**        | http://localhost:8025                                  |
+| **MailHog SMTP**      | `smtp://localhost:1025`                                |
+| **MySQL (host)**      | `127.0.0.1:3306` (service name `db` inside compose) |
+
+## Database Notes
+
+The `backend/db/init.sql` script runs automatically when the `db` service starts for the first time. It creates the necessary tables.
+
+To completely reset the database for development:
+```sh
+docker compose down -v
+docker compose up -d --build
+```
+This command removes the persistent volume associated with the database, allowing `init.sql` to run again on next startup.
+
+**Tables:**
+- `users`: Stores user account information.
+- `password_history`: Keeps a record of previous passwords to prevent reuse.
+- `password_reset_tokens`: Stores tokens for the password reset flow.
+- `email_verification_tokens`: Stores tokens for initial email verification.
+- `login_attempts`: Tracks failed login attempts for lockout purposes.
+- `login_otp_codes`: Stores the single-use OTP codes for 2FA.
+- `customers`: Stores customer data managed by users.
+
+## API Surface
+
+All endpoints are prefixed with `/api`.
+
+- `POST /api/register`: Registers a new user and sends a verification link via email.
+- `GET /api/verify-email?token=...`: Verifies a user's email address and shows a confirmation page.
+- `POST /api/login`: The first step of authentication. Validates the password and, on success, sends an OTP to the user's email. Returns `{ mfa_required: true, method: "email_otp", expires_in: 10 }`.
+- `POST /api/login/mfa`: The second step of authentication. Verifies the OTP. On success, it sets a session cookie.
+- `POST /api/logout`: Clears the session cookie, logging the user out.
+- `GET /api/me`: Returns the currently authenticated user's details. Requires a valid session cookie.
+- `POST /api/password/forgot`: Initiates the password reset process by sending a reset link to the user's email (captured by MailHog).
+- `POST /api/password/reset`: Completes the password reset process using the token from the reset link.
+
+**Session Cookie Properties (Development):**
+- `HttpOnly`: Prevents access from client-side scripts.
+- `SameSite=Strict`: Restricts cookie sending to same-site requests. `Lax` may be used if needed.
+- `Secure=false`: Set to `false` for local HTTP development. This **must** be `true` in production behind HTTPS.
+
+## Usage Walkthrough
+
+1.  Navigate to `http://localhost:3000/register`.
+2.  Fill out the registration form and submit.
+3.  Open the MailHog UI at `http://localhost:8025` to find the verification email.
+4.  Click the verification link in the email. You will be redirected to a confirmation page.
+5.  Go to `http://localhost:3000/login` and enter your credentials.
+6.  Check MailHog again for the 2FA email containing the OTP.
+7.  Enter the OTP on the login page. On success, you will be redirected to the dashboard.
+8.  If you are already logged in, visiting the root URL (`/`) will automatically redirect you to `/dashboard`.
+9.  To test the password reset flow, use the "Forgot Password" link on the login page, check MailHog for the email, and follow the link to reset your password.
+
+## Development Notes & Limitations
+
+- **Mandatory 2FA:** Two-factor authentication (Email OTP) is enabled by default and required for all users.
+- **OTP Security:** OTP codes are single-use, expire after approximately 10 minutes, and have rate-limited verification attempts to prevent brute-forcing.
+- **Account Lockout:** The login lockout policy (`max_login_attempts`, `lockout_minutes`) is defined in `backend/config/password-policy.toml`.
+- **CSRF:** CSRF protection is not implemented, as the application follows a JSON API pattern where session state is managed by a cookie but actions are stateless. For more complex stateful interactions, a CSRF strategy (e.g., double-submit cookie) would be necessary.
+- **Production Readiness:** This project is for demonstration purposes. For a production environment, you should:
+    - Use `bcrypt` or `Argon2` for password hashing instead of HMAC-SHA256.
+    - Enforce HTTPS and set the `Secure` flag on cookies.
+    - Use a real SMTP provider instead of MailHog.
+    - Implement a robust CSRF protection strategy if the application's needs evolve.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Authors
-
-- [Eliran Malka](https://github.com/EliranMalka1)
+- Eliran 'https://github.com/EliranMalka1'

@@ -6,9 +6,14 @@ A secure web application designed to demonstrate and contrast secure coding prac
 
 ```mermaid
 flowchart TD
-  A["React Frontend (Vite/Nginx) :3000"] -->|"HTTP/REST"| B["Go Backend API (Echo) :8080"]
-  B -->|"SQL queries"| C["MySQL (db) :3306"]
-  B -->|"SMTP (dev)"| D["MailHog UI :8025 / SMTP :1025"]
+    A["React Frontend\n(localhost:3000)"] -->|HTTP/REST| B["Go Backend API\n(localhost:8080)"]
+    B -->|SQL| C["MySQL Database"]
+    B -->|SMTP| D["MailHog SMTP/Web UI\n(localhost:8025)"]
+
+    style A fill:#282c34,stroke:#61DAFB,stroke-width:2px,color:#fff
+    style B fill:#00ADD8,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#4479A1,stroke:#fff,stroke-width:2px,color:#fff
+    style D fill:#c7c7c7,stroke:#000,stroke-width:2px,color:#000
 ```
 
 ## Project Overview

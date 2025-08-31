@@ -73,7 +73,7 @@ export default function Login() {
     }
   };
 
-  // Step 2: Send OTP
+  // Step 2:  Send OTP
   const onSubmitOTP = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });

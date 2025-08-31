@@ -20,15 +20,21 @@ var (
 type PasswordPolicy struct {
 	MinLength                                                int
 	RequireUpper, RequireLower, RequireDigit, RequireSpecial bool
+	History                                                  int
+	// New: login throttling / lockout
+	MaxLoginAttempts int // e.g. 3
+	LockoutMinutes   int // e.g. 15
 }
 
 func DefaultPolicy() PasswordPolicy {
 	return PasswordPolicy{
-		MinLength:      10,
-		RequireUpper:   true,
-		RequireLower:   true,
-		RequireDigit:   true,
-		RequireSpecial: true,
+		MinLength:        10,
+		RequireUpper:     true,
+		RequireLower:     true,
+		RequireDigit:     true,
+		RequireSpecial:   true,
+		MaxLoginAttempts: 3,
+		LockoutMinutes:   15,
 	}
 }
 

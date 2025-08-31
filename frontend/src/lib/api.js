@@ -1,10 +1,46 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+// Helpers
+async function parseJson(res) {
+  try { return await res.json(); } catch { return {}; }
+}
+async function assertOk(res) {
+  if (!res.ok) {
+    const data = await parseJson(res);
+    const message = data?.error || data?.message || `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+  return res;
+}
+
+async function post(path, body, { withCredentials = true } = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: withCredentials ? "include" : "omit",
+    body: JSON.stringify(body),
+  });
+  await assertOk(res);
+  return parseJson(res);
+}
+
+async function get(path) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  await assertOk(res);
+  return parseJson(res);
+}
+
+// === Public API ===
+
+// Registration should not send cookies
 export async function apiRegister(payload) {
   const res = await fetch(`${BASE_URL}/api/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    
+    credentials: "omit",
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
@@ -13,3 +49,22 @@ export async function apiRegister(payload) {
   }
   return data;
 }
+
+// Step 1: password login (server will return { mfa_required: true } if 2FA is on)
+export async function apiLogin(payload) {
+  return post("/api/login", payload);
+}
+
+// Step 2: submit OTP code
+export async function apiLoginMFA({ id, code }) {
+  return post("/api/login/mfa", { id, code });
+}
+
+// Optional: logout + whoami
+export async function apiLogout() {
+  return post("/api/logout", {}, { withCredentials: true });
+}
+export async function apiMe() {
+  return get("/api/me");
+}
+

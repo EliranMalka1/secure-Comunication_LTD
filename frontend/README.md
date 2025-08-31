@@ -8,8 +8,10 @@ The frontend provides the client-side interface for user registration, login, an
 
 Key features include:
 -   User registration and authentication.
+-   The frontend includes a comprehensive email verification flow, requiring users to verify their email address before they can log in.
 -   A secure dashboard for managing customer information.
 -   A responsive and intuitive user interface.
+-   Support for two-factor authentication (2FA) is planned for a future release.
 
 ---
 
@@ -37,6 +39,7 @@ This project is built with a modern and robust technology stack:
 
 
 
+
 ## 4. Folder Structure
 
 The actual directory layout for the frontend is:
@@ -51,6 +54,7 @@ frontend/
 │   ├── lib/
 │   │   └── api.js
 │   ├── pages/
+│   │   ├── Login.jsx
 │   │   └── Register.jsx
 │   ├── App.css
 │   ├── App.jsx
@@ -75,7 +79,7 @@ frontend/
 -   `src/`: Contains all the application source code, including components, styles, and assets.
 -   `src/assets/`: Static assets for the app (e.g., `react.svg`).
 -   `src/lib/`: Utility libraries and API logic (e.g., `api.js`).
--   `src/pages/`: React page components (e.g., `Register.jsx`).
+-   `src/pages/`: React page components (e.g., `Login.jsx`, `Register.jsx`). Planned additions include `Dashboard.jsx` and customer management pages.
 -   `.env`, `.env.example`: Environment variable files for configuration.
 -   `.dockerignore`, `.gitignore`: Ignore files for Docker and Git.
 -   `Dockerfile`: Defines the multi-stage Docker build process.
@@ -92,10 +96,11 @@ frontend/
 
 Security is a top priority for this project. The following measures have been implemented on the frontend:
 
--   **Client-Side Input Validation**: All user inputs are validated to prevent malformed requests from being sent to the server.
+-   **Client-Side Input Validation**: The frontend performs validation to check for correct input format (e.g., email format). However, the backend is responsible for enforcing the full password policy and other security-critical validation.
 -   **XSS Protection**: React automatically escapes JSX content, providing protection against Cross-Site Scripting (XSS) attacks.
 -   **HTTPS Usage**: Recommended for all production deployments to ensure secure data transmission.
 -   **No Secrets in Client Code**: Sensitive information, such as JWT secrets, is never stored or exposed in the client-side code.
+-   **Secure Cookie Management**: Authentication tokens are stored in HttpOnly cookies, which are managed entirely by the backend. The frontend never stores tokens in `localStorage` or other client-side storage.
 
 ---
 
@@ -122,7 +127,7 @@ To build and run the frontend container:
 # Build the Docker image
 docker build -t frontend-secure ./frontend
 
-# Run the container
+# Run the container, mapping port 3000 on the host to port 80 in the container (where Nginx is listening).
 docker run -p 3000:80 frontend-secure
 ```
 
@@ -142,6 +147,9 @@ This frontend application meets the following project requirements:
 -   **Client-Side Validation**: Implemented to ensure data integrity.
 -   **User-Friendly Interface**: Provides a seamless experience for login and registration.
 -   **Secure Communication**: No insecure requests are sent to the backend.
+-   **Email Verification**: A complete UI for email verification is supported.
+-   **Two-Factor Authentication (2FA)**: The UI for 2FA is planned but not yet implemented.
+-   **Customer Management**: Pages for searching and adding customers are planned. The backend will handle SQL injection prevention.
 
 ---
 
@@ -154,15 +162,15 @@ This frontend application meets the following project requirements:
 ---
 
 ## 10. Environment Variables
-Copy `.env.example` to `.env` and update values:
+Copy `frontend/.env.example` to `frontend/.env` and update values:
 
 ```bash
-cp config/.env.example /.env
+cp frontend/.env.example frontend/.env
 ```
 
 Required variables:
 
-- `VITE_API_URL`  
+- `VITE_API_URL`: The URL of the backend API (e.g., `http://localhost:8080`).
 
 ---
 
@@ -171,8 +179,4 @@ Required variables:
 
 This project is licensed under the **MIT License**.
 
--   **Authors**: 
-    - Eliran Malka[https://github.com/EliranMalka1].
-    - Eliran Malka[https://github.com/EliranMalka1].
-    - Eliran Malka[https://github.com/EliranMalka1].
-    - Eliran Malka[https://github.com/EliranMalka1].
+**Author:** [Eliran Malka](https://github.com/EliranMalka1)

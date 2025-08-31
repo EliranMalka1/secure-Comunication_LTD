@@ -11,6 +11,7 @@ import (
 
 	"secure-communication-ltd/backend/config"
 	"secure-communication-ltd/backend/internal/handlers"
+	middlewarex "secure-communication-ltd/backend/internal/middleware"
 	"secure-communication-ltd/backend/internal/repository"
 	"secure-communication-ltd/backend/internal/services"
 )
@@ -40,8 +41,9 @@ func main() {
 			"http://localhost:3000", // Docker nginx
 			"http://127.0.0.1:3000", // Docker nginx
 		},
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderContentType, echo.HeaderAuthorization},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization},
+		AllowCredentials: true,
 	}))
 
 	// Load password policy from config file
@@ -66,6 +68,10 @@ func main() {
 	// Auth
 	e.POST("/api/register", handlers.Register(db, pol))
 	e.GET("/api/verify-email", handlers.VerifyEmail(db))
+	e.POST("/api/login", handlers.Login(db, pol))
+	e.POST("/api/logout", handlers.Logout())
+	e.GET("/api/me", handlers.Me(), middlewarex.RequireAuth)
+	e.POST("/api/login/mfa", handlers.LoginMFA(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {

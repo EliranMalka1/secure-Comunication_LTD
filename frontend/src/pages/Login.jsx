@@ -185,7 +185,7 @@ export default function Login() {
                 Back
               </button>
               <div style={{ display: "flex", gap: 10 }}>
-                {/* בעתיד אפשר להוסיף כאן כפתור "Resend code" */}
+                {}
                 <button className="btn primary" type="submit" disabled={loading}>
                   {loading ? "Verifying..." : "Verify"}
                 </button>

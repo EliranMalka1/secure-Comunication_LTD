@@ -68,3 +68,27 @@ export async function apiMe() {
   return get("/api/me");
 }
 
+export async function apiForgotPassword(email) {
+  // No need for cookies
+  const res = await fetch(`${BASE_URL}/api/password/forgot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Request failed");
+  return data;
+}
+
+export async function apiResetPassword({ token, newPassword }) {
+  const res = await fetch(`${BASE_URL}/api/password/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Request failed");
+  return data;
+}

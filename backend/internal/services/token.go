@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"time"
 )
@@ -28,4 +29,12 @@ func NewVerificationToken(ttl time.Duration) (*RawToken, error) {
 		SHA1Hex:   shaHex,
 		ExpiresAt: time.Now().Add(ttl),
 	}, nil
+}
+
+func NewRandomBase64URL(nBytes int) (string, error) {
+	b := make([]byte, nBytes)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

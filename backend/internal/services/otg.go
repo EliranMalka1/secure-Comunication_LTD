@@ -41,7 +41,7 @@ type OTPConfig struct {
 }
 
 // Start a new OTP flow: cancel old, create new, email the raw code
-func StartEmailOTP(db *sqlx.DB, mailer Mailer, userID int64, toEmail string, cfg OTPConfig) error {
+func StartEmailOTP(db *sqlx.DB, mailer *Mailer, userID int64, toEmail string, cfg OTPConfig) error {
 	if err := CancelOpenOTPChallenges(db, userID); err != nil {
 		return err
 	}

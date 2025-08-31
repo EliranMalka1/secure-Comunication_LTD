@@ -13,8 +13,8 @@ import (
 )
 
 type MFALoginRequest struct {
-	ID   string `json:"id"`   // username or email (same as step 1)
-	Code string `json:"code"` // 6-digit
+	ID   string `json:"id"`   // email or username (same identifier as in the password step)
+	Code string `json:"code"` // 6 digits
 }
 
 type otpRow struct {
@@ -65,15 +65,14 @@ func LoginMFA(db *sqlx.DB) echo.HandlerFunc {
 
 		// optional: lock after too many attempts
 		if ch.Attempts >= 5 {
-			// consider forcing restart: mark consumed to close this challenge
 			_, _ = db.Exec(`UPDATE login_otp_challenges SET consumed_at = NOW() WHERE id = ?`, ch.ID)
 			return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "too many attempts"})
 		}
 
 		// check code hash
 		hash := services.HashSHA256Hex(code)
-		var exists int
-		if err := db.Get(&exists, `
+		var ok int
+		if err := db.Get(&ok, `
 			SELECT COUNT(*) FROM login_otp_challenges
 			WHERE id = ? AND code_sha256 = ? AND consumed_at IS NULL AND expires_at > NOW()
 			LIMIT 1
@@ -81,23 +80,36 @@ func LoginMFA(db *sqlx.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db error"})
 		}
 
-		if exists == 0 {
-			// increment attempts
+		if ok == 0 {
 			_, _ = db.Exec(`UPDATE login_otp_challenges SET attempts = attempts + 1 WHERE id = ?`, ch.ID)
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid code"})
 		}
 
-		// consume challenge
+		// consume on success (single-use)
 		if _, err := db.Exec(`UPDATE login_otp_challenges SET consumed_at = NOW() WHERE id = ?`, ch.ID); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "consume error"})
 		}
 
-		// SUCCESS -> issue auth cookie / JWT
-		token, err := services.GenerateJWT(userID) // adapt to your jwt.go signature
+		// === SUCCESS: issue JWT + cookie (using your existing helper/signature) ===
+		// Your CreateJWT function receives (userID, username, ttl). We don't have username here,
+		// so we will fetch it briefly or send an empty string if the function allows. Preferably fetch:
+		var username string
+		_ = db.Get(&username, `SELECT username FROM users WHERE id = ?`, userID)
+
+		token, err := services.CreateJWT(userID, username, 24*time.Hour)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "jwt error"})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token error"})
 		}
-		cookie := services.MakeAuthCookie(token) // if you have helper; else set manually
+
+		cookie := &http.Cookie{
+			Name:     services.CookieName, // As used in login.go
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Now().Add(24 * time.Hour),
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   false, // Set to true in HTTPS
+		}
 		c.SetCookie(cookie)
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "ok"})

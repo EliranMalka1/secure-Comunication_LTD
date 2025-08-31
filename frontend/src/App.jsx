@@ -1,7 +1,11 @@
-import React from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
+import Forgot from "./pages/Forgot";
+import Reset from "./pages/Reset";
+import Dashboard from "./pages/Dashboard";
+import { apiMe } from "./lib/api";
 
 function Home() {
   const nav = useNavigate();
@@ -23,16 +27,53 @@ function Home() {
   );
 }
 
-const Placeholder = ({ title }) => (
-  <div className="hero"><div className="glass"><h2>{title}</h2></div></div>
-);
+/** Guard: renders children only if the user is authenticated (cookie/JWT valid). */
+function RequireAuth() {
+  const [state, setState] = useState({ checking: true, ok: false });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await apiMe();               // 200 => session OK
+        setState({ checking: false, ok: true });
+      } catch {
+        setState({ checking: false, ok: false }); // 401/Network => not logged in
+      }
+    })();
+  }, []);
+
+  if (state.checking) {
+    return (
+      <div className="hero">
+        <div className="glass" style={{ maxWidth: 420, textAlign: "center" }}>
+          Checking session…
+        </div>
+      </div>
+    );
+  }
+  return state.ok ? <Outlet /> : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/" element={<Home />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/login" element={<Login/>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot" element={<Forgot />} />
+      <Route path="/reset" element={<Reset />} />
+
+      {/* Protected routes (require valid session) */}
+      <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        {/* future:
+        <Route path="/change-password" element={<ChangePassword />} />
+        */}
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

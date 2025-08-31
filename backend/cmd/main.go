@@ -72,6 +72,10 @@ func main() {
 	e.POST("/api/logout", handlers.Logout())
 	e.GET("/api/me", handlers.Me(), middlewarex.RequireAuth)
 	e.POST("/api/login/mfa", handlers.LoginMFA(db))
+	// Forgot / Reset password
+	e.POST("/api/password/forgot", handlers.PasswordForgot(db))
+	e.GET("/api/password/reset", handlers.PasswordResetLanding()) // redirect ל-frontend
+	e.POST("/api/password/reset", handlers.PasswordReset(db, pol))
 
 	port := os.Getenv("PORT")
 	if port == "" {

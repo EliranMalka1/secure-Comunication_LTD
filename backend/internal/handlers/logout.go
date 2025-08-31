@@ -11,7 +11,7 @@ import (
 
 func Logout() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Delete the cookie (set expiration in the past)
+		// Delete the cookie (set expiration to the past)
 		c.SetCookie(&http.Cookie{
 			Name:     services.CookieName,
 			Value:    "",

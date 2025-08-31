@@ -1,16 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiLogin, apiLoginMFA } from "../lib/api";
+import { apiLogin, apiLoginMFA, apiForgotPassword } from "../lib/api";
 
 export default function Login() {
   const nav = useNavigate();
 
-  // שני מצבים: "password" (ברירת מחדל) ואז "otp"
+  // Two states: "password" (default) and then "otp"
   const [step, setStep] = useState("password");
   const [form, setForm] = useState({ id: "", password: "", code: "" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [otpMeta, setOtpMeta] = useState({ expiresIn: 0, method: "" });
+
+  // Forgot password UI state
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState({ type: "", text: "" });
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -30,7 +36,7 @@ export default function Login() {
     return "";
   };
 
-  // שלב 1: סיסמה
+  // Step 1: Password
   const onSubmitPassword = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -45,7 +51,7 @@ export default function Login() {
         password: form.password,
       });
 
-      // אם השרת דורש MFA – נעבור לשלב הקוד
+      // If the server requires MFA - move to the code step
       if (data?.mfa_required) {
         setOtpMeta({ expiresIn: data.expires_in ?? 10, method: data.method ?? "email_otp" });
         setForm((f) => ({ ...f, code: "" }));
@@ -57,9 +63,9 @@ export default function Login() {
         return;
       }
 
-      // אחרת (אם בעתיד תאפשר לוגין בלי 2FA)
+      // Otherwise (if in the future you allow login without 2FA)
       setMsg({ type: "success", text: "Logged in successfully." });
-      setTimeout(() => nav("/"), 500);
+      setTimeout(() => nav("/dashboard"), 500);
     } catch (e) {
       setMsg({ type: "error", text: e?.message || "Login failed. Please try again." });
     } finally {
@@ -67,7 +73,7 @@ export default function Login() {
     }
   };
 
-  // שלב 2: שליחת OTP
+  // Step 2:  Send OTP
   const onSubmitOTP = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -91,6 +97,31 @@ export default function Login() {
     }
   };
 
+  // Forgot Password submit
+  const onSubmitForgot = async (e) => {
+    e.preventDefault();
+    setForgotMsg({ type: "", text: "" });
+
+    const email = forgotEmail.trim();
+    if (!email || !looksLikeEmail(email)) {
+      setForgotMsg({ type: "error", text: "Please enter a valid email address." });
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      await apiForgotPassword(email);
+      setForgotMsg({
+        type: "success",
+        text: "If this email exists, a reset link has been sent. Please check your inbox.",
+      });
+    } catch (err) {
+      setForgotMsg({ type: "error", text: err?.message || "Request failed. Try again later." });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
     <div className="hero">
       <div className="glass" style={{ maxWidth: 520 }}>
@@ -100,56 +131,116 @@ export default function Login() {
         <p className="tagline">
           {step === "password"
             ? "Welcome back. Please sign in to continue."
-            : `Enter the 6-digit code we sent to your email. ${otpMeta.expiresIn ? `Expires in ${otpMeta.expiresIn} min.` : ""}`}
+            : `Enter the 6-digit code we sent to your email. ${
+                otpMeta.expiresIn ? `Expires in ${otpMeta.expiresIn} min.` : ""
+              }`}
         </p>
 
         {step === "password" ? (
-          <form onSubmit={onSubmitPassword} style={{ textAlign: "left", marginTop: 12 }}>
-            <label style={{ display: "block", marginBottom: 6 }}>Email or Username</label>
-            <input
-              name="id"
-              type="text"
-              value={form.id}
-              onChange={onChange}
-              placeholder="you@example.com or yourname"
-              className="input"
-              autoComplete="username"
-            />
+          <>
+            <form onSubmit={onSubmitPassword} style={{ textAlign: "left", marginTop: 12 }}>
+              <label style={{ display: "block", marginBottom: 6 }}>Email or Username</label>
+              <input
+                name="id"
+                type="text"
+                value={form.id}
+                onChange={onChange}
+                placeholder="you@example.com or yourname"
+                className="input"
+                autoComplete="username"
+              />
 
-            <label style={{ display: "block", margin: "14px 0 6px" }}>Password</label>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={onChange}
-              placeholder="••••••••"
-              className="input"
-              autoComplete="current-password"
-            />
+              <label style={{ display: "block", margin: "14px 0 6px" }}>Password</label>
+              <input
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={onChange}
+                placeholder="••••••••"
+                className="input"
+                autoComplete="current-password"
+              />
 
-            {msg.text && (
-              <div
-                style={{
-                  marginTop: 14,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  background: msg.type === "error" ? "rgba(255,0,0,0.12)" : "rgba(0,255,120,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                }}
-              >
-                {msg.text}
+              {/* Forgot password toggle */}
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => {
+                    setShowForgot((v) => !v);
+                    setForgotMsg({ type: "", text: "" });
+                  }}
+                >
+                  {showForgot ? "Hide forgot password" : "Forgot your password?"}
+                </button>
               </div>
-            )}
 
-            <div className="actions" style={{ marginTop: 18, justifyContent: "flex-end" }}>
-              <button className="btn ghost" type="button" onClick={() => nav("/")}>
-                Cancel
-              </button>
-              <button className="btn primary" type="submit" disabled={loading}>
-                {loading ? "Signing in..." : "Continue"}
-              </button>
-            </div>
-          </form>
+              {msg.text && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: msg.type === "error" ? "rgba(255,0,0,0.12)" : "rgba(0,255,120,0.12)",
+                    border: "1px solid rgba(255,255,255,0.18)",
+                  }}
+                >
+                  {msg.text}
+                </div>
+              )}
+
+              <div className="actions" style={{ marginTop: 18, justifyContent: "flex-end" }}>
+                <button className="btn ghost" type="button" onClick={() => nav("/")}>
+                  Cancel
+                </button>
+                <button className="btn primary" type="submit" disabled={loading}>
+                  {loading ? "Signing in..." : "Continue"}
+                </button>
+              </div>
+            </form>
+
+            {/* Forgot password panel */}
+            {showForgot && (
+              <form onSubmit={onSubmitForgot} style={{ textAlign: "left", marginTop: 18 }}>
+                <hr style={{ opacity: 0.15, margin: "12px 0 16px" }} />
+                <h3 style={{ margin: "0 0 8px" }}>Reset your password</h3>
+                <p className="tagline" style={{ marginTop: 0 }}>
+                  Enter your account email and we’ll send a reset link.
+                </p>
+                <label style={{ display: "block", marginBottom: 6 }}>Email</label>
+                <input
+                  name="forgotEmail"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="input"
+                  autoComplete="email"
+                />
+
+                {forgotMsg.text && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background:
+                        forgotMsg.type === "error" ? "rgba(255,0,0,0.12)" : "rgba(0,255,120,0.12)",
+                      border: "1px solid rgba(255,255,255,0.18)",
+                    }}
+                  >
+                    {forgotMsg.text}
+                  </div>
+                )}
+
+                <div className="actions" style={{ marginTop: 14, justifyContent: "flex-end" }}>
+                  <button className="btn primary" type="submit" disabled={forgotLoading}>
+                    {forgotLoading ? "Sending..." : "Send reset link"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </>
         ) : (
           <form onSubmit={onSubmitOTP} style={{ textAlign: "left", marginTop: 12 }}>
             <label style={{ display: "block", marginBottom: 6 }}>Verification code</label>
@@ -157,7 +248,8 @@ export default function Login() {
               name="code"
               type="text"
               inputMode="numeric"
-              pattern="\d*"
+              pattern="[0-9]*"
+              minLength={6}
               maxLength={6}
               value={form.code}
               onChange={onChange}
@@ -185,7 +277,6 @@ export default function Login() {
                 Back
               </button>
               <div style={{ display: "flex", gap: 10 }}>
-                {/* בעתיד אפשר להוסיף כאן כפתור "Resend code" */}
                 <button className="btn primary" type="submit" disabled={loading}>
                   {loading ? "Verifying..." : "Verify"}
                 </button>
@@ -197,7 +288,9 @@ export default function Login() {
         {step === "password" && (
           <div className="footer-note">
             <span className="dot" /> Don’t have an account?
-            <button className="btn ghost" onClick={() => nav("/register")}>Create one</button>
+            <button className="btn ghost" onClick={() => nav("/register")}>
+              Create one
+            </button>
           </div>
         )}
       </div>

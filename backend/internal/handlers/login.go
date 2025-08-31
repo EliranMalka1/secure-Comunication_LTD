@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -17,7 +18,6 @@ import (
 type LoginRequest struct {
 	ID       string `json:"id"` // email or username
 	Password string `json:"password"`
-	OTP      string `json:"otp,omitempty"` // לשלב 2FA בהמשך
 }
 
 type userRow struct {
@@ -41,7 +41,7 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing fields"})
 		}
 
-		// נעילה לפי policy: ניסיונות כושלים אחרונים בחלון זמן
+		// --- Lockout window check (failed password attempts) ---
 		var failCount int
 		if err := db.Get(&failCount, `
 			SELECT COUNT(*) FROM login_attempts
@@ -54,7 +54,7 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "account temporarily locked"})
 		}
 
-		// שליפת משתמש לפי email או username
+		// --- Fetch user by email OR username ---
 		var u userRow
 		err := db.Get(&u, `
 			SELECT id, username, email, password_hmac, salt, is_active, is_verified
@@ -63,74 +63,86 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			LIMIT 1
 		`, req.ID, req.ID)
 
-		knownUser := err != sql.ErrNoRows && err == nil
+		knownUser := (err == nil)
 		userIDForLog := sql.NullInt64{}
 		if knownUser {
-			userIDForLog.Int64 = u.ID
 			userIDForLog.Valid = true
+			userIDForLog.Int64 = u.ID
 		}
 
-		// חישוב hash להשוואה (גם אם אין משתמש—כדי למנוע timing attacks)
+		// --- Constant-time style check (compute hash whether user exists or not) ---
 		var computed string
 		if knownUser {
 			if h, e := services.HashPasswordHMACHex(req.Password, u.Salt); e == nil {
 				computed = h
 			}
 		} else {
-			// "עבודה" דמה כדי לא לחשוף זמן תגובה
+			// dummy work to keep timing similar
 			dummySalt := make([]byte, 16)
-			_ = dummySalt // אין צורך למלא רנדום
-			_ /*_*/, _ = services.HashPasswordHMACHex(req.Password, dummySalt)
+			_, _ = services.HashPasswordHMACHex(req.Password, dummySalt)
 		}
 
 		ip := clientIP(c.Request())
 
-		// בדיקת התאמה + סטטוסים
+		// --- Check password + statuses ---
 		ok := false
 		if knownUser {
-			// השוואה קבועת-זמן
 			if subtle.ConstantTimeCompare([]byte(computed), []byte(u.PassHMAC)) == 1 &&
 				u.IsActive && u.IsVerified {
 				ok = true
 			}
 		}
 
-		// לוג נסיון (לפני תשובה ללקוח)
-		_, _ = db.Exec(`
-			INSERT INTO login_attempts (user_id, username, ip, success)
-			VALUES (?, ?, ?, ?)
-		`, userIDForLog, req.ID, ip, ok)
-
 		if !ok {
-			// תשובה גנרית
+			// log failed attempt (password stage)
+			_, _ = db.Exec(`
+				INSERT INTO login_attempts (user_id, username, ip, success)
+				VALUES (?, ?, ?, 0)
+			`, userIDForLog, req.ID, ip)
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		}
 
-		// (בשלב 2FA – נבדוק כאן OTP אם two_factor_enabled)
+		// =============== 2FA REQUIRED (Email OTP) ===============
+		// Step 1 success (password ok) -> do NOT issue cookie yet.
+		// Start an email OTP challenge and respond with mfa_required=true.
 
-		// JWT + cookie
-		token, err := services.CreateJWT(u.ID, u.Username, 24*time.Hour)
+		mailer, err := services.NewMailerFromEnv()
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token error"})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "mailer error"})
 		}
 
-		cookie := &http.Cookie{
-			Name:     services.CookieName,
-			Value:    token,
-			Path:     "/",
-			Expires:  time.Now().Add(24 * time.Hour),
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
-			Secure:   false, // ב־HTTPS הפוך ל־true
+		// read optional config from env, with safe defaults
+		ttl := 10   // minutes
+		maxAtt := 5 // attempts
+		if v := os.Getenv("MFA_OTP_TTL_MINUTES"); v != "" {
+			if n, e := strconv.Atoi(v); e == nil && n > 0 && n <= 60 {
+				ttl = n
+			}
 		}
-		c.SetCookie(cookie)
+		if v := os.Getenv("MFA_OTP_MAX_ATTEMPTS"); v != "" {
+			if n, e := strconv.Atoi(v); e == nil && n >= 1 && n <= 10 {
+				maxAtt = n
+			}
+		}
 
-		return c.JSON(http.StatusOK, map[string]string{"message": "ok"})
+		cfg := services.OTPConfig{
+			TTLMinutes:  ttl,
+			MaxAttempts: maxAtt,
+		}
+		if err := services.StartEmailOTP(db, mailer, u.ID, u.Email, cfg); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "otp start error"})
+		}
+
+		// Tell client to show OTP code screen (step 2)
+		return c.JSON(http.StatusOK, map[string]any{
+			"mfa_required": true,
+			"method":       "email_otp",
+			"expires_in":   ttl,
+		})
 	}
 }
 
 func clientIP(r *http.Request) string {
-	// אם בעתיד תעבוד מאחורי proxy, תוכל לבדוק X-Forwarded-For
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

@@ -71,6 +71,22 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     INDEX idx_la_username_time (username, attempt_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+-- === Email OTP for 2FA ===
+CREATE TABLE IF NOT EXISTS login_otp_challenges (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  code_sha256 CHAR(64) NOT NULL,          -- store hash, never raw code
+  expires_at DATETIME NOT NULL,
+  consumed_at DATETIME NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_login_otp_user (user_id),
+  INDEX idx_login_otp_exp (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- === Demo data (for development only!) ===
 INSERT INTO users (username, email, password_hmac, salt)
 VALUES ('admin', 'admin@example.com',

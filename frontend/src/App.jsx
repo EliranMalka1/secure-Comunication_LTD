@@ -117,9 +117,7 @@ export default function App() {
       {/* Protected pages - require a session */}
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        {/* future:
         <Route path="/change-password" element={<ChangePassword />} />
-        */}
       </Route>
 
       {/* Fallback */}

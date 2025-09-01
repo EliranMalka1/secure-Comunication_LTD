@@ -92,3 +92,16 @@ export async function apiResetPassword({ token, newPassword }) {
   if (!res.ok) throw new Error(data?.error || "Request failed");
   return data;
 }
+
+export async function apiPasswordChange({ oldPassword, newPassword }) {
+  // requires valid session cookie
+  const res = await fetch(`${BASE_URL}/api/password/change`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Request failed");
+  return data;
+}

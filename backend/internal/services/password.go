@@ -33,6 +33,7 @@ func DefaultPolicy() PasswordPolicy {
 		RequireLower:     true,
 		RequireDigit:     true,
 		RequireSpecial:   true,
+		History:          3,
 		MaxLoginAttempts: 3,
 		LockoutMinutes:   15,
 	}

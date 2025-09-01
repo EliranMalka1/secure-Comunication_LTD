@@ -86,6 +86,20 @@ CREATE TABLE IF NOT EXISTS login_otp_challenges (
   INDEX idx_login_otp_exp (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Pending password change requests (email confirmation flow)
+CREATE TABLE IF NOT EXISTS password_change_requests (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  user_id          INT NOT NULL,
+  new_password_hmac CHAR(64) NOT NULL,   -- HMAC-SHA256 hex of the *new* password
+  new_salt         VARBINARY(16) NOT NULL,
+  token_sha1       CHAR(40) NOT NULL,    -- SHA-1 hex of confirmation token
+  expires_at       DATETIME NOT NULL,
+  used_at          DATETIME NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_pcr_token (token_sha1),
+  INDEX idx_pcr_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- === Demo data (for development only!) ===
 INSERT INTO users (username, email, password_hmac, salt)

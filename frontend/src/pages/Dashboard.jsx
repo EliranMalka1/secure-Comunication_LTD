@@ -5,32 +5,40 @@ import { apiMe, apiLogout, apiSearchCustomers } from "../lib/api";
 
 function Clock() {
   const [now, setNow] = useState(new Date());
-  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
   return <span className="clock">{now.toLocaleTimeString()}</span>;
 }
 
 function useDebounce(value, delay = 300) {
   const [v, setV] = useState(value);
-  useEffect(() => { const t = setTimeout(() => setV(value), delay); return () => clearTimeout(t); }, [value, delay]);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
   return v;
 }
 
 export default function Dashboard() {
   const nav = useNavigate();
+
+  // session
   const [me, setMe] = useState(null);
   const [loadingMe, setLoadingMe] = useState(true);
 
-  // search state
+  // search & paging
   const [q, setQ] = useState("");
+  const debouncedQ = useDebounce(q, 300);
   const [page, setPage] = useState(1);
   const [size] = useState(10);
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [searchErr, setSearchErr] = useState("");
 
-  const debouncedQ = useDebounce(q, 300);
-
-  // load current user
+  // load current user (guard)
   useEffect(() => {
     (async () => {
       try {
@@ -44,18 +52,31 @@ export default function Dashboard() {
     })();
   }, [nav]);
 
-  // search customers whenever q/page changes
+  // search only when input >= 2 chars
   useEffect(() => {
     if (loadingMe) return;
+
+    const term = debouncedQ.trim();
+    if (term.length < 2) {
+      // clear view if query too short
+      setRows([]);
+      setTotal(0);
+      setSearchErr("");
+      setLoadingSearch(false);
+      return;
+    }
+
     (async () => {
       setLoadingSearch(true);
+      setSearchErr("");
       try {
-        const data = await apiSearchCustomers({ q: debouncedQ, page, size });
-        setRows(data.items || []);
-        setTotal(data.total || 0);
-      } catch {
+        const data = await apiSearchCustomers({ q: term, page, size });
+        setRows(Array.isArray(data.items) ? data.items : []);
+        setTotal(typeof data.total === "number" ? data.total : 0);
+      } catch (err) {
         setRows([]);
         setTotal(0);
+        setSearchErr(err?.message || "Search failed");
       } finally {
         setLoadingSearch(false);
       }
@@ -78,6 +99,7 @@ export default function Dashboard() {
   }
 
   const pages = Math.max(1, Math.ceil(total / size));
+  const showHelper = q.trim().length < 2;
 
   return (
     <div>
@@ -102,12 +124,24 @@ export default function Dashboard() {
           <div style={{ display: "flex", gap: 12, margin: "12px 0 18px" }}>
             <input
               className="input"
-              placeholder="Search customers by name, email or notes…"
+              placeholder="Search customers by name, email, or notes… (min. 2 chars)"
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
               style={{ flex: 1 }}
             />
           </div>
+
+          {/* Helper / Error */}
+          {searchErr && (
+            <div className="note" style={{ marginBottom: 12 }}>
+              {searchErr}
+            </div>
+          )}
+          {showHelper && !searchErr && (
+            <div className="note" style={{ marginBottom: 12 }}>
+              Type at least 2 characters to search.
+            </div>
+          )}
 
           {/* Results table */}
           <div style={{ overflowX: "auto" }}>
@@ -123,7 +157,9 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {loadingSearch ? (
+                {showHelper ? (
+                  <tr><td colSpan={6} style={td}>Start typing to search…</td></tr>
+                ) : loadingSearch ? (
                   <tr><td colSpan={6} style={td}>Loading…</td></tr>
                 ) : rows.length === 0 ? (
                   <tr><td colSpan={6} style={td}>No results</td></tr>
@@ -133,7 +169,8 @@ export default function Dashboard() {
                     <td style={td}>{r.name}</td>
                     <td style={td}>{r.email}</td>
                     <td style={td}>{r.phone || "-"}</td>
-                    <td style={td}>{r.notes || "-"}</td>
+                    {}
+                    <td style={td} title={r.notes || ""}>{r.notes || "-"}</td>
                     <td style={td}>{new Date(r.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
@@ -142,11 +179,13 @@ export default function Dashboard() {
           </div>
 
           {/* Pagination */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-            <button className="btn ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
-            <div style={{ alignSelf: "center", opacity: .8 }}>Page {page} / {pages}</div>
-            <button className="btn ghost" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next</button>
-          </div>
+          {!showHelper && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+              <button className="btn ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
+              <div style={{ alignSelf: "center", opacity: .8 }}>Page {page} / {pages}</div>
+              <button className="btn ghost" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next</button>
+            </div>
+          )}
         </div>
       </main>
     </div>

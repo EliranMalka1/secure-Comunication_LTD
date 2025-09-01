@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS password_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     password_hmac CHAR(64) NOT NULL,
+    password_fp  CHAR(64) NULL,            -- SHA-256 hex of the password (for quick lookup)
     changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_ph_user_changed (user_id, changed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,

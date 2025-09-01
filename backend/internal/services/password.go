@@ -77,3 +77,19 @@ func HashPasswordHMACHex(password string, salt []byte) (string, error) {
 	sum := h.Sum(nil) // 32 bytes
 	return hex.EncodeToString(sum), nil
 }
+
+// HashPasswordFingerprintHex returns hex(HMAC-SHA256(history_secret, password)).
+// This is salt-independent and used ONLY for password reuse checks.
+func HashPasswordFingerprintHex(password string) (string, error) {
+	secret := os.Getenv("HMAC_HISTORY_SECRET")
+	if secret == "" {
+		// Fallback to HMAC_SECRET if you prefer, but better to have a dedicated secret
+		secret = os.Getenv("HMAC_SECRET")
+		if secret == "" {
+			return "", errors.New("missing HMAC_HISTORY_SECRET (or HMAC_SECRET)")
+		}
+	}
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(password))
+	return hex.EncodeToString(h.Sum(nil)), nil
+}

@@ -117,3 +117,18 @@ export async function apiCreateCustomer(payload) {
   if (!res.ok) throw new Error(data?.error || "Create customer failed");
   return data; // { id, name }
 }
+
+export async function apiSearchCustomers({ q = "", page = 1, size = 10 } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  params.set("page", String(page));
+  params.set("size", String(size));
+
+  const res = await fetch(`${BASE_URL}/api/customers/search?${params.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Search failed");
+  return data; // { items, page, size, total }
+}

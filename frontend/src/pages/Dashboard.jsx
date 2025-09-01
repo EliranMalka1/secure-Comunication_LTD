@@ -1,42 +1,73 @@
+// src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiMe, apiLogout } from "../lib/api";
+import { apiMe, apiLogout, apiSearchCustomers } from "../lib/api";
 
 function Clock() {
   const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   return <span className="clock">{now.toLocaleTimeString()}</span>;
+}
+
+function useDebounce(value, delay = 300) {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), delay); return () => clearTimeout(t); }, [value, delay]);
+  return v;
 }
 
 export default function Dashboard() {
   const nav = useNavigate();
   const [me, setMe] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
-  
+  const [loadingMe, setLoadingMe] = useState(true);
 
+  // search state
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [size] = useState(10);
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+
+  const debouncedQ = useDebounce(q, 300);
+
+  // load current user
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiMe(); // Throws 401 if no cookie/token
+        const data = await apiMe();
         setMe(data);
       } catch {
         nav("/login", { replace: true });
       } finally {
-        setLoading(false);
+        setLoadingMe(false);
       }
     })();
   }, [nav]);
+
+  // search customers whenever q/page changes
+  useEffect(() => {
+    if (loadingMe) return;
+    (async () => {
+      setLoadingSearch(true);
+      try {
+        const data = await apiSearchCustomers({ q: debouncedQ, page, size });
+        setRows(data.items || []);
+        setTotal(data.total || 0);
+      } catch {
+        setRows([]);
+        setTotal(0);
+      } finally {
+        setLoadingSearch(false);
+      }
+    })();
+  }, [debouncedQ, page, size, loadingMe]);
 
   const onLogout = async () => {
     try { await apiLogout(); } catch {}
     nav("/login", { replace: true });
   };
 
-  if (loading) {
+  if (loadingMe) {
     return (
       <div className="hero">
         <div className="glass" style={{ maxWidth: 420, textAlign: "center" }}>
@@ -46,44 +77,81 @@ export default function Dashboard() {
     );
   }
 
+  const pages = Math.max(1, Math.ceil(total / size));
+
   return (
     <div>
       {/* Top bar */}
       <header className="topbar">
-        <div className="topbar-left">
-          <strong>Secure Communication LTD</strong>
-        </div>
-        <div className="topbar-center">
-          <Clock />
-        </div>
+        <div className="topbar-left"><strong>Secure Communication LTD</strong></div>
+        <div className="topbar-center"><Clock /></div>
         <div className="topbar-right">
           <span className="user-chip">👤 {me?.username || me?.email}</span>
-          <button className="btn ghost" onClick={() => nav("/change-password")}>
-            Change password
-          </button>
-          <button className="btn primary" onClick={() => nav("/customers/new")}>
-            New Customer
-          </button>
-          <button className="btn primary" onClick={onLogout}>
-            Logout
-          </button>
-
+          <button className="btn ghost" onClick={() => nav("/change-password")}>Change password</button>
+          <button className="btn primary" onClick={() => nav("/customers/new")}>New Customer</button>
+          <button className="btn primary" onClick={onLogout}>Logout</button>
         </div>
       </header>
 
-      {/* Main content placeholder */}
+      {/* Main */}
       <main className="page">
-        <div className="glass" style={{ maxWidth: 820 }}>
+        <div className="glass" style={{ width: "min(92vw, 1024px)" }}>
           <h2 style={{ marginTop: 0 }}>Welcome{me?.username ? `, ${me.username}` : ""}!</h2>
-          <p className="tagline">
-            This is your dashboard. Next steps: customer search & add-customer screens.
-          </p>
 
-          {msg && (
-            <div className="note">{msg}</div>
-          )}
+          {/* Search bar */}
+          <div style={{ display: "flex", gap: 12, margin: "12px 0 18px" }}>
+            <input
+              className="input"
+              placeholder="Search customers by name, email or notes…"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              style={{ flex: 1 }}
+            />
+          </div>
+
+          {/* Results table */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ opacity: .85 }}>
+                  <th style={th}>ID</th>
+                  <th style={th}>Name</th>
+                  <th style={th}>Email</th>
+                  <th style={th}>Phone</th>
+                  <th style={th}>Notes</th>
+                  <th style={th}>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingSearch ? (
+                  <tr><td colSpan={6} style={td}>Loading…</td></tr>
+                ) : rows.length === 0 ? (
+                  <tr><td colSpan={6} style={td}>No results</td></tr>
+                ) : rows.map(r => (
+                  <tr key={r.id}>
+                    <td style={td}>{r.id}</td>
+                    <td style={td}>{r.name}</td>
+                    <td style={td}>{r.email}</td>
+                    <td style={td}>{r.phone || "-"}</td>
+                    <td style={td}>{r.notes || "-"}</td>
+                    <td style={td}>{new Date(r.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+            <button className="btn ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
+            <div style={{ alignSelf: "center", opacity: .8 }}>Page {page} / {pages}</div>
+            <button className="btn ghost" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next</button>
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
+const th = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid rgba(255,255,255,0.12)" };
+const td = { padding: "10px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" };

@@ -7,6 +7,8 @@ import Reset from "./pages/Reset";
 import Dashboard from "./pages/Dashboard";
 import ChangePassword from "./pages/ChangePassword.jsx";
 import { apiMe } from "./lib/api";
+import CustomerNew from "./pages/CustomerNew";
+
 
 /** Home: If there is a session - automatically navigates to the dashboard; otherwise it displays the home page. */
 function Home() {
@@ -119,6 +121,8 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/customers/new" element={<CustomerNew />} />
       </Route>
 
       {/* Fallback */}

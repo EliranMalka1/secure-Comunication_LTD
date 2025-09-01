@@ -105,3 +105,15 @@ export async function apiPasswordChange({ oldPassword, newPassword }) {
   if (!res.ok) throw new Error(data?.error || "Request failed");
   return data;
 }
+
+export async function apiCreateCustomer(payload) {
+  const res = await fetch(`${BASE_URL}/api/customers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include", // requires valid session cookie
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Create customer failed");
+  return data; // { id, name }
+}

@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  
 
   useEffect(() => {
     (async () => {
@@ -60,9 +61,13 @@ export default function Dashboard() {
           <button className="btn ghost" onClick={() => nav("/change-password")}>
             Change password
           </button>
+          <button className="btn primary" onClick={() => nav("/customers/new")}>
+            New Customer
+          </button>
           <button className="btn primary" onClick={onLogout}>
             Logout
           </button>
+
         </div>
       </header>
 

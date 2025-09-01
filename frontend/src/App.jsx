@@ -5,6 +5,7 @@ import Login from "./pages/Login.jsx";
 import Forgot from "./pages/Forgot";
 import Reset from "./pages/Reset";
 import Dashboard from "./pages/Dashboard";
+import ChangePassword from "./pages/ChangePassword.jsx";
 import { apiMe } from "./lib/api";
 
 /** Home: If there is a session - automatically navigates to the dashboard; otherwise it displays the home page. */

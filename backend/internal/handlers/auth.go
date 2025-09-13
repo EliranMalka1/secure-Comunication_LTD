@@ -54,30 +54,33 @@ func Register(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "hash error"})
 		}
+		fpHex, err := services.HashPasswordFingerprintHex(req.Password) // ← fingerprint בלתי תלוי מלח
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "fingerprint error"})
+		}
 
 		res, err := db.Exec(`
-			INSERT INTO users (username, email, password_hmac, salt, is_verified)
-			VALUES (?, ?, ?, ?, FALSE)`,
-			req.Username, req.Email, hashHex, salt)
+			INSERT INTO users (username, email, password_hmac, salt, password_fp, is_verified)
+			VALUES (?, ?, ?, ?, ?, FALSE)
+		`, req.Username, req.Email, hashHex, salt, fpHex)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "insert error"})
 		}
 		uid, _ := res.LastInsertId()
 
-		// Create verification token and save to DB
+		// verification token
 		vTok, err := services.NewVerificationToken(24 * time.Hour)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token error"})
 		}
-		_, err = db.Exec(`
+		if _, err := db.Exec(`
 			INSERT INTO email_verification_tokens (user_id, token_sha1, expires_at)
-			VALUES (?, ?, ?)`,
-			uid, vTok.SHA1Hex, vTok.ExpiresAt)
-		if err != nil {
+			VALUES (?, ?, ?)
+		`, uid, vTok.SHA1Hex, vTok.ExpiresAt); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token save error"})
 		}
 
-		// Send email
+		// email
 		mailer, err := services.NewMailerFromEnv()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "mailer error"})
@@ -87,16 +90,13 @@ func Register(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			base = "http://localhost:8080"
 		}
 		link := fmt.Sprintf("%s/api/verify-email?token=%s", strings.TrimRight(base, "/"), vTok.Raw)
-
 		html := fmt.Sprintf(`
 			<h2>Verify your email</h2>
 			<p>Hi %s, thanks for registering.</p>
-			<p>Please click the button below to verify your email address:</p>
 			<p><a href="%s" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#4f9cff;color:#fff;text-decoration:none">Verify Email</a></p>
 			<p>If the button doesn't work, copy this URL:</p>
 			<p><code>%s</code></p>
 		`, req.Username, link, link)
-
 		if err := mailer.Send(req.Email, "Verify your email", html); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "send mail error"})
 		}
@@ -107,7 +107,6 @@ func Register(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 	}
 }
 
-// Basic email validation (client already does basic validation; this is server-side reinforcement)
 func looksLikeEmail(s string) bool {
 	return strings.Count(s, "@") == 1 && len(s) >= 6 && strings.Contains(s, ".")
 }

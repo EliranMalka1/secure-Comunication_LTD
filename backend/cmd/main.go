@@ -81,7 +81,7 @@ func main() {
 	e.POST("/api/password/change", handlers.ChangePassword(db, pol), middlewarex.RequireAuth)
 	e.GET("/api/customers/search", handlers.SearchCustomers(db), middlewarex.RequireAuth)
 
-	e.GET("/api/password/change/confirm", handlers.ChangePasswordConfirm(db))
+	e.GET("/api/password/change/confirm", handlers.ChangePasswordConfirm(db, pol))
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

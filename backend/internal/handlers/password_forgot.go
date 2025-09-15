@@ -44,7 +44,7 @@ func PasswordForgot(db *sqlx.DB) echo.HandlerFunc {
 		_, _ = db.Exec(`UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL`, userID)
 
 		// Create a new token (raw) and store SHA-1
-		raw, err := services.NewRandomBase64URL(32) // 32 bytes → ~43 chars
+		raw, err := services.NewRandomBase64URL(32)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token error"})
 		}

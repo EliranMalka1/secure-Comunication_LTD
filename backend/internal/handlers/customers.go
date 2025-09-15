@@ -42,14 +42,14 @@ func CreateCustomer(db *sqlx.DB) echo.HandlerFunc {
 		if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email"})
 		}
-		// Secure insertion (prepared)
+		// Insert into DB
 		res, err := db.Exec(`
 			INSERT INTO customers (name, email, phone, notes)
 			VALUES (?, ?, ?, ?)`,
 			req.Name, req.Email, req.Phone, req.Notes,
 		)
 		if err != nil {
-			// Possible DUPLICATE email
+
 			return c.JSON(http.StatusConflict, map[string]string{"error": "could not create customer"})
 		}
 		id, _ := res.LastInsertId()

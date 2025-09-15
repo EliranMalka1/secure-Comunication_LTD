@@ -58,14 +58,12 @@ func ValidatePassword(pw string, pol PasswordPolicy) error {
 	return nil
 }
 
-// 16-byte random salt (raw bytes, for VARBINARY(16))
 func GenerateSalt16() ([]byte, error) {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	return b, err
 }
 
-// Returns hex(HMAC-SHA256(secret, salt||password)) – 64 hex chars.
 func HashPasswordHMACHex(password string, salt []byte) (string, error) {
 	secret := os.Getenv("HMAC_SECRET")
 	if secret == "" {
@@ -78,12 +76,10 @@ func HashPasswordHMACHex(password string, salt []byte) (string, error) {
 	return hex.EncodeToString(sum), nil
 }
 
-// HashPasswordFingerprintHex returns hex(HMAC-SHA256(history_secret, password)).
-// This is salt-independent and used ONLY for password reuse checks.
 func HashPasswordFingerprintHex(password string) (string, error) {
 	secret := os.Getenv("HMAC_HISTORY_SECRET")
 	if secret == "" {
-		// Fallback to HMAC_SECRET if you prefer, but better to have a dedicated secret
+
 		secret = os.Getenv("HMAC_SECRET")
 		if secret == "" {
 			return "", errors.New("missing HMAC_HISTORY_SECRET (or HMAC_SECRET)")

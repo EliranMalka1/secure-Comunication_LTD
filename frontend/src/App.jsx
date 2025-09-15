@@ -56,14 +56,14 @@ function Home() {
   );
 }
 
-/** Guard: Allows access to routes only if there is a valid session (cookie/JWT). */
+
 function RequireAuth() {
   const [state, setState] = useState({ checking: true, ok: false });
 
   useEffect(() => {
     (async () => {
       try {
-        await apiMe(); // 200 => connected
+        await apiMe(); // 200 = connected
         setState({ checking: false, ok: true });
       } catch {
         setState({ checking: false, ok: false });

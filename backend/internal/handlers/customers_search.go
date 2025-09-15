@@ -21,7 +21,7 @@ type CustomerDTO struct {
 
 func SearchCustomers(db *sqlx.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Read from query string (GET /api/customers/search?q=...&page=1&size=10)
+
 		q := strings.TrimSpace(c.QueryParam("q"))
 		pageStr := c.QueryParam("page")
 		sizeStr := c.QueryParam("size")

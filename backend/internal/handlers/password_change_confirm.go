@@ -119,7 +119,7 @@ func ChangePasswordConfirm(db *sqlx.DB, pol services.PasswordPolicy) echo.Handle
 			Expires:  time.Unix(0, 0),
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
-			Secure:   false, // set true in HTTPS prod
+			Secure:   false,
 		})
 
 		return c.HTML(http.StatusOK, verificationPage(true,

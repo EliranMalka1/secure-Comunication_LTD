@@ -38,7 +38,7 @@ export default function Dashboard() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchErr, setSearchErr] = useState("");
 
-  // load current user (guard)
+  // load current user 
   useEffect(() => {
     (async () => {
       try {
@@ -52,13 +52,13 @@ export default function Dashboard() {
     })();
   }, [nav]);
 
-  // search only when input >= 2 chars
+  
   useEffect(() => {
     if (loadingMe) return;
 
     const term = debouncedQ.trim();
     if (term.length < 2) {
-      // clear view if query too short
+      
       setRows([]);
       setTotal(0);
       setSearchErr("");

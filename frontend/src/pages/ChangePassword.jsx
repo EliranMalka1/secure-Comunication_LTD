@@ -13,7 +13,7 @@ export default function ChangePassword() {
   const validate = () => {
     if (!form.old || !form.next || !form.confirm) return "Please fill all fields.";
     if (form.next !== form.confirm) return "New password and confirmation do not match.";
-    if (form.next.length < 10) return "New password looks too short."; // client hint only
+    if (form.next.length < 10) return "New password looks too short."; 
     return "";
   };
 

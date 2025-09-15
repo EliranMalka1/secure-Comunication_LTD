@@ -10,13 +10,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// generate a 6-digit numeric code, zero-padded (e.g. "083174")
 func GenerateNumericCode6() (string, error) {
 	var b [3]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return "", err
 	}
-	// 24-bit -> 0..16777215 ; take mod 1e6
+
 	n := (int(b[0])<<16 | int(b[1])<<8 | int(b[2])) % 1000000
 	return fmt.Sprintf("%06d", n), nil
 }
@@ -26,7 +25,6 @@ func HashSHA256Hex(s string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// Cancel any open (unconsumed) challenges for user
 func CancelOpenOTPChallenges(db *sqlx.DB, userID int64) error {
 	_, err := db.Exec(`UPDATE login_otp_challenges
 		SET consumed_at = NOW()
@@ -35,12 +33,11 @@ func CancelOpenOTPChallenges(db *sqlx.DB, userID int64) error {
 }
 
 type OTPConfig struct {
-	TTLMinutes    int // e.g. 10
-	MaxAttempts   int // e.g. 5
-	ResendWindowS int // optional, if you implement /resend
+	TTLMinutes    int
+	MaxAttempts   int
+	ResendWindowS int
 }
 
-// Start a new OTP flow: cancel old, create new, email the raw code
 func StartEmailOTP(db *sqlx.DB, mailer *Mailer, userID int64, toEmail string, cfg OTPConfig) error {
 	if err := CancelOpenOTPChallenges(db, userID); err != nil {
 		return err
@@ -58,7 +55,7 @@ func StartEmailOTP(db *sqlx.DB, mailer *Mailer, userID int64, toEmail string, cf
 		return err
 	}
 
-	// Email content (simple HTML)
+	// Email content
 	html := fmt.Sprintf(`
 		<h2>Your verification code</h2>
 		<p>Enter this 6-digit code to complete your sign-in:</p>

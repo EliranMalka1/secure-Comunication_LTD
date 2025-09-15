@@ -21,7 +21,6 @@ type resetReq struct {
 	NewPassword string `json:"new_password"`
 }
 
-// GET /api/password/reset?token=... -> redirects to FE
 func PasswordResetLanding() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		raw := c.QueryParam("token")
@@ -34,7 +33,6 @@ func PasswordResetLanding() echo.HandlerFunc {
 	}
 }
 
-// POST /api/password/reset  (body: {token, new_password})
 func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req resetReq
@@ -47,12 +45,10 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing fields"})
 		}
 
-		// 1) מורכבות לפי הפוליסה
 		if err := services.ValidatePassword(newPw, pol); err != nil {
 			return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		}
 
-		// 2) איתור הטוקן (SHA-1 לפי דרישות הפרויקט)
 		sum := sha1.Sum([]byte(raw))
 		sha := hex.EncodeToString(sum[:])
 
@@ -77,7 +73,6 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "token expired or used"})
 		}
 
-		// 3) שליפת המצב הנוכחי של המשתמש: fp + HMAC+salt כדי לזהות זהות לנוכחית גם אם fp ריק/ישן
 		var currentFP string
 		var curHash string
 		var curSalt []byte
@@ -93,19 +88,17 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db error"})
 		}
 
-		// 4) fingerprint לסיסמה החדשה (בלתי תלוי במלח)
 		newFP, err := services.HashPasswordFingerprintHex(newPw)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "fingerprint error"})
 		}
 
-		// 5a) חסימה מול הסיסמה הנוכחית לפי FP (כשיש)
 		if currentFP != "" && newFP == currentFP {
 			return c.JSON(http.StatusUnprocessableEntity, map[string]string{
 				"error": "new password must differ from current password",
 			})
 		}
-		// 5b) חסימה מול הסיסמה הנוכחית לפי HMAC+salt (fallback כשfp ריק/ישן)
+
 		hxCur, err := services.HashPasswordHMACHex(newPw, curSalt)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "hash error"})
@@ -116,8 +109,7 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			})
 		}
 
-		// 6) חסימה מול N האחרונות בהיסטוריה (FP קודם; אם חסר FP — fallback HMAC+salt)
-		nHistory := pol.History // <<< HISTORY COUNT HERE
+		nHistory := pol.History
 		if nHistory > 0 {
 			type histRow struct {
 				FP   sql.NullString `db:"password_fp"`
@@ -135,13 +127,13 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db error"})
 			}
 			for _, r := range prev {
-				// FP check (אם קיים)
+
 				if r.FP.Valid && r.FP.String != "" && r.FP.String == newFP {
 					return c.JSON(http.StatusUnprocessableEntity, map[string]string{
 						"error": "new password must differ from the last used passwords",
 					})
 				}
-				// Fallback: אין FP אבל יש HMAC+salt → בדוק זהות ע"י HMAC
+
 				if len(r.Salt) > 0 && r.HMAC.Valid && r.HMAC.String != "" {
 					hx, err := services.HashPasswordHMACHex(newPw, r.Salt)
 					if err != nil {
@@ -156,7 +148,6 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			}
 		}
 
-		// 7) יצירת מלח ו-HMAC לסיסמה החדשה
 		newSalt, err := services.GenerateSalt16()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "salt error"})
@@ -166,14 +157,12 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "hash error"})
 		}
 
-		// 8) טרנזקציה: מוסיפים את ה"ישנה" להיסטוריה (כולל salt), מעדכנים את החדשה (כולל fp), מטרימים היסטוריה, מסמנים את הטוקן
 		tx, err := db.Beginx()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "tx error"})
 		}
 		defer tx.Rollback()
 
-		// הוספת הסיסמה הנוכחית להיסטוריה (עם salt + fp)
 		if _, err := tx.Exec(`
 			INSERT INTO password_history (user_id, password_hmac, password_fp, salt)
 			SELECT id, password_hmac, password_fp, salt
@@ -183,7 +172,6 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "history insert error"})
 		}
 
-		// עדכון user בסיסמה החדשה + מלח + fingerprint חדש
 		if _, err := tx.Exec(`
 			UPDATE users
 			SET password_hmac = ?, salt = ?, password_fp = ?
@@ -192,7 +180,6 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update user error"})
 		}
 
-		// טרימינג להיסטוריה — שומרים רק N אחרונות
 		if nHistory > 0 {
 			if _, err := tx.Exec(`
 				DELETE FROM password_history
@@ -211,7 +198,6 @@ func PasswordReset(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			}
 		}
 
-		// סימון הטוקן כ-Used
 		if _, err := tx.Exec(`
 			UPDATE password_reset_tokens
 			SET used_at = NOW()

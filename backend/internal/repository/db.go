@@ -19,7 +19,6 @@ func NewMySQL() (*sqlx.DB, error) {
 		port = "3306"
 	}
 
-	// parseTime=true so that TIMESTAMP/DATETIME are mapped to time.Time
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4,utf8",
 		user, pass, host, port, name)
 

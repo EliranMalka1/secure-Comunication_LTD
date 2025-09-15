@@ -25,11 +25,9 @@ func NewMailerFromEnv() (*Mailer, error) {
 	return &Mailer{host: h, port: p, from: f}, nil
 }
 
-// Dev-friendly SMTP (MailHog does not require auth/TLS)
 func (m *Mailer) Send(to, subject, html string) error {
 	addr := net.JoinHostPort(m.host, m.port)
 
-	// MIME headers
 	msg := strings.Builder{}
 	msg.WriteString("From: " + m.from + "\r\n")
 	msg.WriteString("To: " + to + "\r\n")
@@ -39,15 +37,11 @@ func (m *Mailer) Send(to, subject, html string) error {
 	msg.WriteString("\r\n")
 	msg.WriteString(html)
 
-	// No TLS/auth (MailHog). For production: implement full AUTH+TLS.
 	c, err := smtp.Dial(addr)
 	if err != nil {
 		return err
 	}
 	defer c.Close()
-
-	// If TLS is needed:
-	// _ = c.StartTLS(&tls.Config{ServerName: m.host, InsecureSkipVerify: true})
 
 	if err := c.Mail(m.from); err != nil {
 		return err
@@ -68,4 +62,4 @@ func (m *Mailer) Send(to, subject, html string) error {
 	return c.Quit()
 }
 
-var _ = tls.Config{} // To import tls even if not used right now
+var _ = tls.Config{}

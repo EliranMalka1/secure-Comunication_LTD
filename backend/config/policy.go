@@ -19,7 +19,7 @@ type policyFile struct {
 }
 
 func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
-	// אם אין קובץ – חזור לברירת המחדל עם שגיאה "רכה"
+
 	if _, err := os.Stat(path); err != nil {
 		pp := services.DefaultPolicy()
 		return pp, fmt.Errorf("policy file not found, using defaults: %w", err)
@@ -31,7 +31,6 @@ func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
 		return pp, fmt.Errorf("policy parse error, using defaults: %w", err)
 	}
 
-	// מיפוי TOML → PasswordPolicy
 	pp := services.PasswordPolicy{
 		MinLength:        pf.MinLength,
 		History:          pf.History,
@@ -39,7 +38,6 @@ func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
 		LockoutMinutes:   pf.LockoutMinutes,
 	}
 
-	// complexity_rules → בוליאנים
 	set := map[string]bool{}
 	for _, r := range pf.ComplexityRules {
 		set[strings.ToLower(strings.TrimSpace(r))] = true
@@ -49,7 +47,7 @@ func LoadPasswordPolicy(path string) (services.PasswordPolicy, error) {
 	pp.RequireDigit = set["has_digit"]
 	pp.RequireSpecial = set["has_special"]
 
-	// ברירות מחדל אם הושארו 0 בקובץ
+	// Validate, fall back to defaults if something is wrong
 	if pp.MinLength <= 0 {
 		pp.MinLength = services.DefaultPolicy().MinLength
 	}

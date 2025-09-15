@@ -41,7 +41,7 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing fields"})
 		}
 
-		// --- Lockout window check (failed password attempts) ---
+		//  Lockout window check (failed password attempts)
 		var failCount int
 		if err := db.Get(&failCount, `
 			SELECT COUNT(*) FROM login_attempts
@@ -54,7 +54,7 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "account temporarily locked"})
 		}
 
-		// --- Fetch user by email OR username ---
+		//  Fetch user by email OR username
 		var u userRow
 		err := db.Get(&u, `
 			SELECT id, username, email, password_hmac, salt, is_active, is_verified
@@ -70,21 +70,21 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			userIDForLog.Int64 = u.ID
 		}
 
-		// --- Constant-time style check (compute hash whether user exists or not) ---
+		// Constant-time style check (compute hash whether user exists or not)
 		var computed string
 		if knownUser {
 			if h, e := services.HashPasswordHMACHex(req.Password, u.Salt); e == nil {
 				computed = h
 			}
 		} else {
-			// dummy work to keep timing similar
+
 			dummySalt := make([]byte, 16)
 			_, _ = services.HashPasswordHMACHex(req.Password, dummySalt)
 		}
 
 		ip := clientIP(c.Request())
 
-		// --- Check password + statuses ---
+		//  Check password + statuses
 		ok := false
 		if knownUser {
 			if subtle.ConstantTimeCompare([]byte(computed), []byte(u.PassHMAC)) == 1 &&
@@ -102,16 +102,11 @@ func Login(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		}
 
-		// =============== 2FA REQUIRED (Email OTP) ===============
-		// Step 1 success (password ok) -> do NOT issue cookie yet.
-		// Start an email OTP challenge and respond with mfa_required=true.
-
 		mailer, err := services.NewMailerFromEnv()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "mailer error"})
 		}
 
-		// read optional config from env, with safe defaults
 		ttl := 10   // minutes
 		maxAtt := 5 // attempts
 		if v := os.Getenv("MFA_OTP_TTL_MINUTES"); v != "" {

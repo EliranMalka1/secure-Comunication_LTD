@@ -5,14 +5,14 @@ import { apiLogin, apiLoginMFA, apiForgotPassword } from "../lib/api";
 export default function Login() {
   const nav = useNavigate();
 
-  // Two states: "password" (default) and then "otp"
+  
   const [step, setStep] = useState("password");
   const [form, setForm] = useState({ id: "", password: "", code: "" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [otpMeta, setOtpMeta] = useState({ expiresIn: 0, method: "" });
 
-  // Forgot password UI state
+  
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function Login() {
     return "";
   };
 
-  // Step 1: Password
+ 
   const onSubmitPassword = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -51,7 +51,7 @@ export default function Login() {
         password: form.password,
       });
 
-      // If the server requires MFA - move to the code step
+      
       if (data?.mfa_required) {
         setOtpMeta({ expiresIn: data.expires_in ?? 10, method: data.method ?? "email_otp" });
         setForm((f) => ({ ...f, code: "" }));
@@ -63,7 +63,7 @@ export default function Login() {
         return;
       }
 
-      // Otherwise (if in the future you allow login without 2FA)
+     
       setMsg({ type: "success", text: "Logged in successfully." });
       setTimeout(() => nav("/dashboard"), 500);
     } catch (e) {
@@ -73,7 +73,7 @@ export default function Login() {
     }
   };
 
-  // Step 2:  Send OTP
+  
   const onSubmitOTP = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -97,7 +97,7 @@ export default function Login() {
     }
   };
 
-  // Forgot Password submit
+  
   const onSubmitForgot = async (e) => {
     e.preventDefault();
     setForgotMsg({ type: "", text: "" });

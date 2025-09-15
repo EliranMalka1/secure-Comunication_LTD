@@ -33,9 +33,7 @@ async function get(path) {
   return parseJson(res);
 }
 
-// === Public API ===
 
-// Registration should not send cookies
 export async function apiRegister(payload) {
   const res = await fetch(`${BASE_URL}/api/register`, {
     method: "POST",
@@ -60,7 +58,7 @@ export async function apiLoginMFA({ id, code }) {
   return post("/api/login/mfa", { id, code });
 }
 
-// Optional: logout + whoami
+
 export async function apiLogout() {
   return post("/api/logout", {}, { withCredentials: true });
 }
@@ -69,7 +67,7 @@ export async function apiMe() {
 }
 
 export async function apiForgotPassword(email) {
-  // No need for cookies
+  
   const res = await fetch(`${BASE_URL}/api/password/forgot`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -94,7 +92,7 @@ export async function apiResetPassword({ token, newPassword }) {
 }
 
 export async function apiPasswordChange({ oldPassword, newPassword }) {
-  // requires valid session cookie
+
   const res = await fetch(`${BASE_URL}/api/password/change`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -110,12 +108,12 @@ export async function apiCreateCustomer(payload) {
   const res = await fetch(`${BASE_URL}/api/customers`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include", // requires valid session cookie
+    credentials: "include", 
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Create customer failed");
-  return data; // { id, name }
+  return data; 
 }
 
 export async function apiSearchCustomers({ q = "", page = 1, size = 10 } = {}) {
@@ -130,5 +128,5 @@ export async function apiSearchCustomers({ q = "", page = 1, size = 10 } = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Search failed");
-  return data; // { items, page, size, total }
+  return data; 
 }

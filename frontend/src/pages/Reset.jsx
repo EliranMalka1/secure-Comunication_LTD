@@ -20,7 +20,7 @@ export default function Reset() {
     e.preventDefault();
     setMsg({ type: "", text: "" });
     if (!password || password.length < 8) {
-      // The server enforces the policy; here is just a light UX validation
+      
       setMsg({ type: "error", text: "Please enter a stronger password." });
       return;
     }

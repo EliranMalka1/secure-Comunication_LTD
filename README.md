@@ -231,4 +231,7 @@ All endpoints are prefixed with `/api`.
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Authors
-- Eliran 'https://github.com/EliranMalka1'
+- Eliran Malka 'https://github.com/EliranMalka1'
+- Shmuel Lahchakov
+- Itzhak Yesayev
+- Miri Yakobson

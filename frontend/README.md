@@ -174,9 +174,3 @@ Required variables:
 
 ---
 
-
-## 11. License / Authors
-
-This project is licensed under the **MIT License**.
-
-**Author:** [Eliran Malka](https://github.com/EliranMalka1)

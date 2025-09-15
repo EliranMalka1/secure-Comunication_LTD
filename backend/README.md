@@ -231,7 +231,3 @@ flowchart TD
 - MailHog is for development purposes only. Configure a real SMTP service for production.
 - Replacing HMAC with bcrypt or Argon2 is recommended for production-grade password storage.
 
-## License / Author
-
-- **MIT License**
-- **Author**: Eliran Malka 

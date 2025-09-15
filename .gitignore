@@ -1,7 +1,7 @@
 # Node
 frontend/node_modules/
 frontend/build/
-frontend/.env
+
 
 # Go
 backend/bin/
@@ -12,7 +12,7 @@ backend/__debug_bin*
 
 # General
 *.log
-.env
+
 .DS_Store
 .idea/
 .vscode/

@@ -17,12 +17,14 @@ import (
 func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pol := config.GetPolicy()
+
 		raw := c.QueryParam("token")
 		if raw == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing token"})
+			return RenderVerificationPage(c, http.StatusBadRequest, false,
+				"Missing Token", "A confirmation token is required.")
 		}
 
-		// token SHA-1 per project spec
+		// token SHA-1 per spec
 		sum := sha1.Sum([]byte(raw))
 		tokenSHA1 := hex.EncodeToString(sum[:])
 
@@ -30,7 +32,7 @@ func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 			userID  int64
 			newHex  string
 			newSalt []byte
-			newFP   string // requires password_change_requests.new_password_fp in schema!
+			newFP   string
 			expires time.Time
 			usedAt  sql.NullTime
 		)
@@ -42,46 +44,52 @@ func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 			WHERE token_sha1 = ?
 		`, tokenSHA1).Scan(&userID, &newHex, &newSalt, &newFP, &expires, &usedAt)
 		if err == sql.ErrNoRows {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid token"})
+			return RenderVerificationPage(c, http.StatusBadRequest, false,
+				"Invalid Token", "This confirmation link is not valid.")
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not read the pending change request.")
 		}
 		if usedAt.Valid {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "token already used"})
+			return RenderVerificationPage(c, http.StatusBadRequest, false,
+				"Already Used", "This confirmation link was already used.")
 		}
 		if time.Now().After(expires) {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "token expired"})
+			return RenderVerificationPage(c, http.StatusBadRequest, false,
+				"Expired Link", "This confirmation link has expired.")
 		}
 
 		tx, err := db.Beginx()
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "tx error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not start a database transaction.")
 		}
 		defer tx.Rollback()
 
-		// push CURRENT to history (include fp + salt for fallback)
+		// move CURRENT to history (store fp + salt for fallback comparisons)
 		if _, err := tx.Exec(`
 			INSERT INTO password_history (user_id, password_hmac, password_fp, salt)
 			SELECT id, password_hmac, password_fp, salt
 			FROM users
 			WHERE id = ?
 		`, userID); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "history insert error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not save previous password in history.")
 		}
 
-		// update user with NEW (hash + salt + fp)
+		// set NEW password (hash + salt + fp)
 		if _, err := tx.Exec(`
 			UPDATE users
 			SET password_hmac = ?, salt = ?, password_fp = ?
 			WHERE id = ?
 		`, newHex, newSalt, newFP, userID); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "update user error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not update the new password.")
 		}
 
-		// trim to last N
-		nHistory := pol.History
-		if nHistory > 0 {
+		// trim history to last N
+		if nHistory := pol.History; nHistory > 0 {
 			if _, err := tx.Exec(`
 				DELETE FROM password_history
 				WHERE user_id = ?
@@ -95,7 +103,8 @@ func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 					) AS keep_rows
 				  )
 			`, userID, userID, nHistory); err != nil {
-				return c.JSON(http.StatusInternalServerError, map[string]string{"error": "trim history error"})
+				return RenderVerificationPage(c, http.StatusInternalServerError, false,
+					"Server Error", "Could not trim password history.")
 			}
 		}
 
@@ -105,14 +114,16 @@ func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 			SET used_at = NOW()
 			WHERE token_sha1 = ?
 		`, tokenSHA1); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token update error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not mark the confirmation token as used.")
 		}
 
 		if err := tx.Commit(); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "commit error"})
+			return RenderVerificationPage(c, http.StatusInternalServerError, false,
+				"Server Error", "Could not commit the password change.")
 		}
 
-		// invalidate session
+		// invalidate session cookie
 		http.SetCookie(c.Response(), &http.Cookie{
 			Name:     services.CookieName,
 			Value:    "",
@@ -121,11 +132,11 @@ func ChangePasswordConfirm(db *sqlx.DB) echo.HandlerFunc {
 			Expires:  time.Unix(0, 0),
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
-			Secure:   false,
+			Secure:   false, // set true in HTTPS production
 		})
 
-		return c.HTML(http.StatusOK, verificationPage(true,
+		return RenderVerificationPage(c, http.StatusOK, true,
 			"Password Changed",
-			"Your password was updated successfully. Please sign in with your new password."))
+			"Your password was updated successfully. Please sign in with your new password.")
 	}
 }

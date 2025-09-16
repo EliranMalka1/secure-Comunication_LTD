@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
+	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -28,28 +30,27 @@ func PasswordForgot(db *sqlx.DB) echo.HandlerFunc {
 		}
 		email := strings.TrimSpace(req.Email)
 		if email == "" || !strings.Contains(email, "@") {
-			// Generic response
+			// Generic response (don't reveal anything)
 			return c.JSON(http.StatusOK, map[string]string{"message": "If this email exists, a reset link has been sent."})
 		}
 
 		// Is there such a user and are they verified?
 		var userID int64
-		err := db.Get(&userID, `SELECT id FROM users WHERE email = ? AND is_verified = TRUE LIMIT 1`, email)
-		if err != nil {
+		if err := db.Get(&userID, `SELECT id FROM users WHERE email = ? AND is_verified = TRUE LIMIT 1`, email); err != nil {
 			// Do not reveal if not found — return generic response
 			return c.JSON(http.StatusOK, map[string]string{"message": "If this email exists, a reset link has been sent."})
 		}
 
-		// Invalidate old open tokens (not required, but nice to have)
+		// Invalidate old open tokens (best-effort)
 		_, _ = db.Exec(`UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL`, userID)
 
-		// Create a new token (raw) and store SHA-1
-		raw, err := services.NewRandomBase64URL(32)
+		// Create a new token (raw) and store SHA-1 only
+		raw, err := services.NewRandomBase64URL(32) // ~43 chars
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "token error"})
 		}
-		h := sha1.Sum([]byte(raw))
-		sha := hex.EncodeToString(h[:])
+		sum := sha1.Sum([]byte(raw))
+		sha := hex.EncodeToString(sum[:])
 
 		exp := time.Now().Add(30 * time.Minute)
 		if _, err := db.Exec(`
@@ -58,7 +59,7 @@ func PasswordForgot(db *sqlx.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "db error"})
 		}
 
-		// Send email
+		// Send email (safe HTML via html/template)
 		mailer, err := services.NewMailerFromEnv()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "mailer error"})
@@ -67,19 +68,27 @@ func PasswordForgot(db *sqlx.DB) echo.HandlerFunc {
 		if base == "" {
 			base = "http://localhost:8080"
 		}
-		// Link to backend that redirects to frontend (see PasswordResetLanding)
-		link := fmt.Sprintf("%s/api/password/reset?token=%s", strings.TrimRight(base, "/"), raw)
+		link := strings.TrimRight(base, "/") + "/api/password/reset?token=" + url.QueryEscape(raw)
 
-		html := fmt.Sprintf(`
-			<h2>Password Reset</h2>
-			<p>We received a request to reset your password.</p>
-			<p><a href="%s" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#4f9cff;color:#fff;text-decoration:none">Set a new password</a></p>
-			<p>If the button doesn't work, copy this URL:</p>
-			<p><code>%s</code></p>
-			<p>This link expires in 30 minutes.</p>
-		`, link, link)
+		// HTML template (auto-escaping of {{.Link}})
+		tpl := template.Must(template.New("pwReset").Parse(`
+<h2>Password Reset</h2>
+<p>We received a request to reset your password.</p>
+<p>
+  <a href="{{.Link}}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#4f9cff;color:#fff;text-decoration:none">
+    Set a new password
+  </a>
+</p>
+<p>If the button doesn't work, copy this URL:</p>
+<p><code>{{.Link}}</code></p>
+<p>This link expires in 30 minutes.</p>
+`))
 
-		_ = mailer.Send(email, "Reset your password", html)
+		var buf bytes.Buffer
+		_ = tpl.Execute(&buf, struct{ Link string }{Link: link})
+
+		// Best-effort send (don’t leak errors to user about existence)
+		_ = mailer.Send(email, "Reset your password", buf.String())
 
 		// Always generic
 		return c.JSON(http.StatusOK, map[string]string{"message": "If this email exists, a reset link has been sent."})

@@ -19,7 +19,7 @@ export default function Reset() {
   const submit = async (e) => {
     e.preventDefault();
     setMsg({ type: "", text: "" });
-    if (!password || password.length < 8) {
+    if (!password) {
       
       setMsg({ type: "error", text: "Please enter a stronger password." });
       return;

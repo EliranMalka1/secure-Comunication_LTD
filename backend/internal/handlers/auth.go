@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
+	"secure-communication-ltd/backend/config"
 	"secure-communication-ltd/backend/internal/services"
 )
 
@@ -19,8 +20,11 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
-func Register(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
+func Register(db *sqlx.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+
+		pol := config.GetPolicy()
+
 		var req RegisterRequest
 		if err := c.Bind(&req); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -54,7 +58,7 @@ func Register(db *sqlx.DB, pol services.PasswordPolicy) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "hash error"})
 		}
-		fpHex, err := services.HashPasswordFingerprintHex(req.Password) // ← fingerprint בלתי תלוי מלח
+		fpHex, err := services.HashPasswordFingerprintHex(req.Password) // HMAC(pepper, password)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "fingerprint error"})
 		}
